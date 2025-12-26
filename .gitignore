@@ -1,0 +1,35 @@
+# Android
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/android/build/
+/android/app/build/
+/android/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.ap_
+*.aab
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.local
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+*.swp
+*.swo

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Colors - Elderly Friendly (High Contrast) -->
+    <color name="primary">#0D47A1</color>
+    <color name="primary_dark">#002171</color>
+    <color name="primary_light">#5472D3</color>
+
+    <!-- Accent Colors - Brighter for visibility -->
+    <color name="accent">#FF6D00</color>
+    <color name="accent_dark">#C43E00</color>
+
+    <!-- Background Colors -->
+    <color name="background">#FAFAFA</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_elevated">#F5F5F5</color>
+
+    <!-- Text Colors - Maximum Contrast for Elderly -->
+    <color name="text_primary">#000000</color>
+    <color name="text_secondary">#424242</color>
+    <color name="text_hint">#616161</color>
+    <color name="text_on_primary">#FFFFFF</color>
+
+    <!-- Status Colors - More saturated for visibility -->
+    <color name="success">#2E7D32</color>
+    <color name="warning">#F9A825</color>
+    <color name="error">#C62828</color>
+
+    <!-- Overlay Colors -->
+    <color name="overlay_background">#F5FFFFFF</color>
+    <color name="overlay_highlight">#661976D2</color>
+    <color name="overlay_arrow">#FF6D00</color>
+
+    <!-- Voice/Listening state -->
+    <color name="listening_active">#f093fb</color>
+    <color name="mic_button">#667eea</color>
+    <color name="mic_button_active">#f093fb</color>
+
+    <!-- Siri-like colors -->
+    <color name="siri_purple">#667eea</color>
+    <color name="siri_pink">#f093fb</color>
+    <color name="siri_dark_bg">#222222</color>
+</resources>

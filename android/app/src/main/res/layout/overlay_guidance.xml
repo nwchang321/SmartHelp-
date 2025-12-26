@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:gravity="bottom">
+
+    <!-- Chat Container -->
+    <LinearLayout
+        android:id="@+id/chatContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="8dp">
+
+        <!-- User Message Bubble -->
+        <LinearLayout
+            android:id="@+id/cardUserQuery"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:orientation="horizontal"
+            android:background="@drawable/bubble_user"
+            android:padding="12dp"
+            android:layout_marginBottom="8dp"
+            android:layout_marginStart="60dp"
+            android:gravity="center_vertical"
+            android:elevation="2dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/txtUserQuery"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#FFFFFF"
+                android:textSize="15sp" />
+
+        </LinearLayout>
+
+        <!-- AI Response Bubble -->
+        <LinearLayout
+            android:id="@+id/cardGuidance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:orientation="horizontal"
+            android:background="@drawable/bubble_ai"
+            android:padding="14dp"
+            android:layout_marginEnd="40dp"
+            android:gravity="center_vertical"
+            android:elevation="4dp">
+
+            <!-- AI Avatar -->
+            <ImageView
+                android:id="@+id/iconGuidance"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@android:drawable/ic_menu_help"
+                android:tint="#FFFFFF"
+                android:background="@drawable/avatar_ai"
+                android:padding="8dp" />
+
+            <!-- AI Text -->
+            <TextView
+                android:id="@+id/txtGuidance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="8dp"
+                android:text="Hi! How can I help you?"
+                android:textColor="#333333"
+                android:textSize="16sp"
+                android:lineSpacingMultiplier="1.2" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Bottom Input Bar with gradient border -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/input_bar_gradient_border"
+        android:padding="2dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:background="@drawable/input_bar_background"
+            android:paddingHorizontal="12dp"
+            android:gravity="center_vertical">
+
+            <!-- Keyboard Toggle Button -->
+            <ImageButton
+                android:id="@+id/btnKeyboardToggle"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_edit"
+                android:tint="#666666"
+                android:scaleType="centerInside"
+                android:padding="8dp"
+                android:contentDescription="Type" />
+
+            <!-- Center Area: Hint / Listening / Input -->
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginHorizontal="8dp">
+
+                <!-- Default hint text -->
+                <TextView
+                    android:id="@+id/txtHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:text="Tap to speak..."
+                    android:textColor="#999999"
+                    android:textSize="15sp" />
+
+                <!-- Listening indicator -->
+                <LinearLayout
+                    android:id="@+id/layoutListening"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/txtListening"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Listening..."
+                        android:textColor="#5C9CE6"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+                <!-- Text Input -->
+                <EditText
+                    android:id="@+id/etQueryInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@null"
+                    android:hint="Type your question..."
+                    android:inputType="text"
+                    android:imeOptions="actionSend"
+                    android:textSize="15sp"
+                    android:textColor="#333333"
+                    android:textColorHint="#999999"
+                    android:visibility="gone" />
+
+            </FrameLayout>
+
+            <!-- Voice Wave Animation -->
+            <com.smarthelp.app.VoiceWaveView
+                android:id="@+id/voiceWaveView"
+                android:layout_width="50dp"
+                android:layout_height="30dp"
+                android:visibility="gone" />
+
+            <!-- Mic Button -->
+            <ImageButton
+                android:id="@+id/btnMicrophone"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/mic_button_background"
+                android:src="@android:drawable/ic_btn_speak_now"
+                android:tint="#FFFFFF"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:contentDescription="Speak" />
+
+            <!-- Send Button (hidden by default) -->
+            <ImageButton
+                android:id="@+id/btnSendText"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/mic_button_background"
+                android:src="@android:drawable/ic_menu_send"
+                android:tint="#FFFFFF"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:contentDescription="Send"
+                android:visibility="gone" />
+
+            <!-- Close/Minimize Button -->
+            <ImageButton
+                android:id="@+id/btnMinimize"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:tint="#999999"
+                android:scaleType="centerInside"
+                android:padding="6dp"
+                android:contentDescription="Close" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+    <!-- Hidden compatibility views -->
+    <TextView
+        android:id="@+id/txtStepCounter"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/layoutVoiceInput"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="visible" />
+
+    <View
+        android:id="@+id/layoutTextInput"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/btnRepeat"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/btnNext"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/btnStop"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
+</LinearLayout>

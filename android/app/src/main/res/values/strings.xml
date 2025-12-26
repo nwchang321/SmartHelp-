@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SmartHelp+</string>
+
+    <!-- Main Screen -->
+    <string name="title_welcome">Welcome to SmartHelp+</string>
+    <string name="subtitle_description">Your AI assistant for smartphone guidance</string>
+    <string name="btn_start_help">Start Help</string>
+    <string name="btn_stop_help">Stop Help</string>
+    <string name="status_ready">Ready to help</string>
+    <string name="status_active">Helping you navigate...</string>
+    <string name="status_connecting">Connecting...</string>
+
+    <!-- Permissions -->
+    <string name="permission_overlay_title">Display Permission Needed</string>
+    <string name="permission_overlay_message">SmartHelp+ needs permission to display guidance on your screen. Please enable \"Display over other apps\" for SmartHelp+.</string>
+    <string name="permission_screen_title">Screen Sharing Permission</string>
+    <string name="permission_screen_message">SmartHelp+ needs to see your screen to provide guidance. Your screen content is only used to help you and is never stored.</string>
+
+    <!-- Overlay -->
+    <string name="overlay_step_format">Step %1$d of %2$d</string>
+    <string name="btn_next">Next</string>
+    <string name="btn_stop">Stop</string>
+    <string name="btn_repeat">Repeat</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_name">SmartHelp+ Service</string>
+    <string name="notification_title">SmartHelp+ is running</string>
+    <string name="notification_message">Tap to open SmartHelp+</string>
+
+    <!-- Errors -->
+    <string name="error_connection">Could not connect to server. Please check your internet connection.</string>
+    <string name="error_analysis">Could not analyze screen. Please try again.</string>
+</resources>

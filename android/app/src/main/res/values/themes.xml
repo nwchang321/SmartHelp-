@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.SmartHelp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary_dark</item>
+        <item name="colorOnPrimary">@color/text_on_primary</item>
+
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/accent</item>
+        <item name="colorSecondaryVariant">@color/accent_dark</item>
+        <item name="colorOnSecondary">@color/text_on_primary</item>
+
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">@color/primary_dark</item>
+
+        <!-- Background -->
+        <item name="android:colorBackground">@color/background</item>
+    </style>
+
+    <!-- Large Button Style for Elderly Users -->
+    <style name="Widget.SmartHelp.Button.Large" parent="Widget.MaterialComponents.Button">
+        <item name="android:minHeight">72dp</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="cornerRadius">20dp</item>
+        <item name="android:padding">20dp</item>
+        <item name="android:letterSpacing">0.02</item>
+    </style>
+
+    <!-- Medium Button for Overlay -->
+    <style name="Widget.SmartHelp.Button.Medium" parent="Widget.MaterialComponents.Button">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:paddingHorizontal">16dp</item>
+    </style>
+
+    <!-- Outlined Medium Button -->
+    <style name="Widget.SmartHelp.Button.Medium.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="strokeColor">@color/primary</item>
+    </style>
+
+    <!-- Microphone Button Style -->
+    <style name="Widget.SmartHelp.Button.Microphone" parent="Widget.MaterialComponents.Button">
+        <item name="android:minWidth">88dp</item>
+        <item name="android:minHeight">88dp</item>
+        <item name="cornerRadius">44dp</item>
+        <item name="backgroundTint">@color/mic_button</item>
+        <item name="iconSize">40dp</item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconPadding">0dp</item>
+    </style>
+
+    <!-- Large Text Style -->
+    <style name="TextAppearance.SmartHelp.Headline" parent="TextAppearance.MaterialComponents.Headline4">
+        <item name="android:textSize">28sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.SmartHelp.Body" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:lineSpacingMultiplier">1.4</item>
+    </style>
+
+    <!-- Guidance Text in Overlay -->
+    <style name="TextAppearance.SmartHelp.Guidance" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:lineSpacingMultiplier">1.4</item>
+    </style>
+
+    <!-- User Query Text -->
+    <style name="TextAppearance.SmartHelp.Query" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textStyle">italic</item>
+    </style>
+
+    <!-- Listening Indicator -->
+    <style name="TextAppearance.SmartHelp.Listening" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">@color/listening_active</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Input Field Style -->
+    <style name="Widget.SmartHelp.TextInput" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeWidth">2dp</item>
+        <item name="boxStrokeColor">@color/primary</item>
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+    </style>
+</resources>
