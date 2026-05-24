@@ -1,42 +1,89 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Primary Colors - Elderly Friendly (High Contrast) -->
-    <color name="primary">#0D47A1</color>
-    <color name="primary_dark">#002171</color>
-    <color name="primary_light">#5472D3</color>
+    <!-- ===== MODERN AI ASSISTANT — SmartHelp+ Palette ===== -->
 
-    <!-- Accent Colors - Brighter for visibility -->
-    <color name="accent">#FF6D00</color>
-    <color name="accent_dark">#C43E00</color>
+    <!-- Brand Blue (replaces purple) -->
+    <color name="brand_purple">#1565C0</color>
+    <color name="brand_purple_dark">#0D47A1</color>
+    <color name="brand_purple_light">#42A5F5</color>
+    <color name="brand_purple_subtle">#E3F2FD</color>
+    <color name="brand_purple_10">#1A1565C0</color>
 
-    <!-- Background Colors -->
-    <color name="background">#FAFAFA</color>
+    <!-- Primary -->
+    <color name="primary">#1565C0</color>
+    <color name="primary_dark">#0D47A1</color>
+    <color name="primary_light">#42A5F5</color>
+    <color name="primary_10">#1A1565C0</color>
+
+    <!-- Accent / Secondary -->
+    <color name="accent">#00ACC1</color>
+    <color name="accent_dark">#00838F</color>
+
+    <!-- Surfaces -->
+    <color name="background">#E3F2FD</color>
     <color name="surface">#FFFFFF</color>
-    <color name="surface_elevated">#F5F5F5</color>
+    <color name="surface_variant">#E3F4FF</color>
+    <color name="surface_card">#FFFFFF</color>
+    <color name="surface_elevated">#FFFFFF</color>
 
-    <!-- Text Colors - Maximum Contrast for Elderly -->
-    <color name="text_primary">#000000</color>
-    <color name="text_secondary">#424242</color>
-    <color name="text_hint">#616161</color>
+    <!-- Text — High contrast -->
+    <color name="text_primary">#1C1B1F</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="text_hint">#9CA3AF</color>
     <color name="text_on_primary">#FFFFFF</color>
+    <color name="text_on_dark">#FFFFFF</color>
 
-    <!-- Status Colors - More saturated for visibility -->
-    <color name="success">#2E7D32</color>
-    <color name="warning">#F9A825</color>
-    <color name="error">#C62828</color>
+    <!-- Status -->
+    <color name="success">#10B981</color>
+    <color name="success_light">#D1FAE5</color>
+    <color name="warning">#F59E0B</color>
+    <color name="warning_light">#FEF3C7</color>
+    <color name="error">#EF4444</color>
+    <color name="error_light">#FEE2E2</color>
 
-    <!-- Overlay Colors -->
-    <color name="overlay_background">#F5FFFFFF</color>
-    <color name="overlay_highlight">#661976D2</color>
-    <color name="overlay_arrow">#FF6D00</color>
+    <!-- Status dot -->
+    <color name="dot_ready">#10B981</color>
+    <color name="dot_active">#1565C0</color>
+    <color name="dot_error">#EF4444</color>
 
-    <!-- Voice/Listening state -->
-    <color name="listening_active">#f093fb</color>
-    <color name="mic_button">#667eea</color>
-    <color name="mic_button_active">#f093fb</color>
+    <!-- Overlay -->
+    <color name="overlay_panel_bg">#FFFFFF</color>
+    <color name="overlay_scrim">#80000000</color>
+    <color name="highlight_border">#1565C0</color>
+    <color name="highlight_fill">#1F1565C0</color>
+    <color name="arrow_color">#1565C0</color>
+    <color name="overlay_arrow">#1565C0</color>
+    <color name="overlay_background">#FFFFFF</color>
+    <color name="overlay_text_heading">#0A2342</color>
+    <color name="overlay_accent">#1565C0</color>
+    <color name="overlay_bubble_dark">#F0111827</color>
+    <color name="overlay_scrim_dark">#99000000</color>
+    <color name="overlay_btn_stroke">#1565C0</color>
+    <color name="overlay_error_bg">#FEF2F2</color>
+    <color name="overlay_error_border">#FECACA</color>
+    <color name="overlay_error_text">#991B1B</color>
 
-    <!-- Siri-like colors -->
-    <color name="siri_purple">#667eea</color>
-    <color name="siri_pink">#f093fb</color>
-    <color name="siri_dark_bg">#222222</color>
+    <!-- Listening -->
+    <color name="listening_active">#1565C0</color>
+    <color name="wave_color">#1565C0</color>
+
+    <!-- Divider -->
+    <color name="divider">#E5E7EB</color>
+
+    <!-- Gradient endpoints -->
+    <color name="gradient_start">#1565C0</color>
+    <color name="gradient_mid">#1976D2</color>
+    <color name="gradient_end">#42A5F5</color>
+
+    <!-- Legacy aliases (keep Java code compatible) -->
+    <color name="brand_indigo">#1565C0</color>
+    <color name="brand_indigo_light">#42A5F5</color>
+    <color name="brand_indigo_10">#1A1565C0</color>
+
+    <!-- Modern Minimalist dark-navy tokens -->
+    <color name="navy_primary">#0A2342</color>
+    <color name="navy_dark">#051829</color>
+    <color name="navy_mid">#0D3171</color>
+    <color name="hero_text">#FFFFFF</color>
+    <color name="hero_text_secondary">#A8C4E0</color>
 </resources>

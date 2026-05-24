@@ -1,0 +1,7 @@
+livekit-agents[google]>=1.0.0
+livekit-plugins-google>=1.0.0
+livekit-api>=1.0.0
+python-dotenv>=1.0.0
+google-genai>=1.0.0
+google-cloud-speech>=2.0.0
+pytest>=7.0.0

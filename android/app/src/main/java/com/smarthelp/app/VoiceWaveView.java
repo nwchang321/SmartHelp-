@@ -27,6 +27,7 @@ public class VoiceWaveView extends View {
     private ValueAnimator animator;
     private boolean isAnimating = false;
     private float phase = 0f;
+    private volatile float amplitude = 1f;  // written from audio thread, read on draw thread
 
     // Colors for gradient
     private int colorStart = 0xFFFF9500;  // Orange
@@ -59,12 +60,12 @@ public class VoiceWaveView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
+        if (w == 0 || h == 0) return;
 
         maxBarHeight = h * 0.8f;
         barWidth = w / (barCount * 2f);
         barSpacing = barWidth;
 
-        // Create gradient
         LinearGradient gradient = new LinearGradient(
                 0, 0, w, 0,
                 new int[]{colorStart, colorMiddle, colorEnd},
@@ -72,6 +73,12 @@ public class VoiceWaveView extends View {
                 Shader.TileMode.CLAMP
         );
         barPaint.setShader(gradient);
+
+        // If startAnimation() was called before layout, kick off the animator now
+        if (isAnimating && (animator == null || !animator.isRunning())) {
+            isAnimating = false; // reset flag so startAnimation() doesn't short-circuit
+            startAnimation();
+        }
     }
 
     public void startAnimation() {
@@ -102,14 +109,19 @@ public class VoiceWaveView extends View {
         invalidate();
     }
 
+    /** Call from audio thread with RMS value 0.0–1.0 to make bars react to real volume. */
+    public void setAmplitude(float amp) {
+        amplitude = Math.max(0f, Math.min(1f, amp));
+    }
+
     private void updateBarHeights() {
         for (int i = 0; i < barCount; i++) {
-            // Create wave effect with different phases for each bar
             float barPhase = phase + (i * 0.8f);
-            float normalizedHeight = (float) (Math.sin(barPhase) + 1) / 2f;
-            // Add some variation
-            normalizedHeight = 0.3f + normalizedHeight * 0.7f;
-            barHeights[i] = maxBarHeight * normalizedHeight;
+            float wave = (float) (Math.sin(barPhase) + 1) / 2f;
+            // Blend: at low amplitude show gentle idle wave; at high amplitude show full height
+            float minFraction = 0.15f + wave * 0.15f;          // 0.15–0.30 idle
+            float maxFraction = 0.30f + wave * 0.70f * amplitude; // scales with mic volume
+            barHeights[i] = maxBarHeight * Math.max(minFraction, maxFraction);
         }
     }
 

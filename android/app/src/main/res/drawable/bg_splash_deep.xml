@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Base: Light purple gradient to match the app icon background -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="150"
+                android:startColor="#FDFDFF"
+                android:centerColor="#F5F3FF"
+                android:endColor="#EBE7FF" />
+        </shape>
+    </item>
+
+    <!-- Top-right soft glow blob (slightly darker/different purple for contrast) -->
+    <item
+        android:width="480dp"
+        android:height="480dp"
+        android:gravity="top|end"
+        android:right="-140dp"
+        android:top="-140dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="240dp"
+                android:startColor="#1A6A5AE0"
+                android:endColor="#006A5AE0" />
+        </shape>
+    </item>
+
+    <!-- Bottom-left glow blob -->
+    <item
+        android:width="380dp"
+        android:height="380dp"
+        android:gravity="bottom|start"
+        android:bottom="-100dp"
+        android:left="-80dp">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="190dp"
+                android:startColor="#106A5AE0"
+                android:endColor="#006A5AE0" />
+        </shape>
+    </item>
+
+</layer-list>

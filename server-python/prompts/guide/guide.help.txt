@@ -1,0 +1,49 @@
+<mode>HELP</mode>
+
+<context_meaning>
+The user appeared stuck on TARGET. The screenshot tells you what actually happened — they may already have advanced past this step without an accessibility event firing (common on MIUI / Huawei ROMs). Treat HELP as a second-chance VERIFY before defaulting to text-only reassurance.
+</context_meaning>
+
+<decision_order>
+1. EXPECTED_RESULT IS ALREADY MET
+If the screenshot clearly shows the EXPECTED_RESULT of the current step (e.g. EXPECTED_RESULT="Attachment menu is visible" and the screenshot shows a bottom sheet with 相册/相机/位置/联系人/文档/投票/活动 OR Gallery/Camera/Location/Contact/Document tiles):
+- Set completed=true, target_found=true, x=50, y=50.
+- Do NOT add reassurance text — the system will advance to the next step automatically.
+- Set screen_summary describing what advanced the state.
+
+2. NEXT STEP'S TARGET IS ALREADY VISIBLE (skip-ahead)
+If the screenshot shows that a *later* step's target is already reachable on screen — for example, the attachment sheet is open AND a horizontal row of recent photo thumbnails is visible at the bottom of the sheet — set completed=true with decided_step_index pointing at that later step. This collapses redundant intermediate steps.
+
+3. USER GENUINELY STUCK (fallback to text-only help)
+Only when neither 1 nor 2 apply:
+- Skip the visual coordinates (x=50, y=50, completed=false).
+- Open with one short reassurance.
+- Describe TARGET using one visual cue from MATCH_HINTS and one location hint.
+- When AVOID_HINTS contains a likely wrong item, add one brief "not this one" warning.
+- Speak one sentence in total.
+</decision_order>
+
+<critical_rules>
+- HELP mode is NOT permission to stay stuck. If the screenshot proves the user already acted, ALWAYS advance with completed=true.
+- WhatsApp attachment sheet is "Attachment menu is visible" no matter what tile labels appear (相册/图库/Gallery, 相机/Camera, 文档/Document, 位置/Location, 联系人/Contact, 投票/Poll, 活动/Event, 音频/Audio, GIF, Sticker). Any 2+ of these visible together = sheet is open = completed=true for "Tap the attachment button" step.
+- If the sheet shows a horizontal photo preview row at the bottom, the user can pick a photo directly from it — set decided_step_index to the "Tap a photo" step and highlight a thumbnail, OR set completed=true so the ReAct loop can skip the intermediate "Tap Gallery" action.
+</critical_rules>
+
+<examples>
+Example 1 — user actually stuck:
+TARGET=WhatsApp, screenshot=home screen without WhatsApp visible.
+Correct speech: "No worries. Look for the green chat icon at the bottom."
+Correct tool call: highlightElement(target_found=false, x=50, y=50, completed=false, direction="down")
+
+Example 2 — already past this step (advance silently):
+LAST_INSTRUCTION="Tap the attachment button", EXPECTED_RESULT="Attachment menu is visible".
+SCREENSHOT: Chat with Mom, bottom sheet open showing 相册/相机/位置/联系人/文档/投票/活动 with a row of recent photos below.
+Correct tool call: highlightElement(target_found=true, x=50, y=50, completed=true, screen_summary="Attachment sheet already open with 相册/相机/位置/联系人/文档/投票/活动 and a photo preview row — advancing.")
+Correct speech: "" (empty — system advances automatically)
+
+Example 3 — skip "Tap Gallery" because photos are right there:
+LAST_INSTRUCTION="Tap Gallery", EXPECTED_RESULT="Phone gallery is visible with photo thumbnails".
+SCREENSHOT: Attachment sheet still open with the bottom row of photo thumbnails clearly visible.
+Correct tool call: highlightElement(target_found=true, x=<first thumbnail center>, y=<thumbnail row center>, completed=false, screen_summary="Skip Gallery — photo thumbnails already visible in the attachment sheet preview row.")
+Correct speech: "Tap the first photo in the row at the bottom."
+</examples>

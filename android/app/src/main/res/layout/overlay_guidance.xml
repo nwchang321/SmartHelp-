@@ -1,249 +1,333 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="12dp"
-    android:gravity="bottom">
+    android:layout_height="match_parent">
 
-    <!-- Chat Container -->
     <LinearLayout
-        android:id="@+id/chatContainer"
+        android:id="@+id/layoutPanel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_bottom_sheet_soft_blue"
         android:orientation="vertical"
-        android:layout_marginBottom="8dp">
+        android:paddingStart="18dp"
+        android:paddingTop="20dp"
+        android:paddingEnd="18dp"
+        android:paddingBottom="18dp">
 
-        <!-- User Message Bubble -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardGuidance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="visible"
+            app:cardBackgroundColor="#F6FFFFFF"
+            app:cardCornerRadius="28dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#33FFFFFF"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="18dp"
+                android:paddingTop="18dp"
+                android:paddingEnd="18dp"
+                android:paddingBottom="18dp">
+
+                <FrameLayout
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_overlay_icon_circle">
+
+                    <ImageView
+                        android:id="@+id/imgAppLogo"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/cd_logo"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/app_logo" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/txtGuidance"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:lineSpacingExtra="4dp"
+                        android:text="Hi! I'm ready to help."
+                        android:textColor="@color/overlay_text_heading"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/txtStepProgress"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:background="@drawable/bg_overlay_status_pill"
+                        android:paddingStart="12dp"
+                        android:paddingTop="6dp"
+                        android:paddingEnd="12dp"
+                        android:paddingBottom="6dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/btnChat"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/bg_overlay_side_button"
+                    android:contentDescription="Chat history"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_chat"
+                    app:tint="#0A2342" />
+
+                <ImageButton
+                    android:id="@+id/btnMinimize"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_overlay_side_button"
+                    android:contentDescription="Minimize"
+                    android:padding="10dp"
+                    android:src="@drawable/ic_minimize"
+                    app:tint="#0A2342" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardError"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#00FFFFFF"
+            app:strokeWidth="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_overlay_error_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="16dp"
+                android:paddingTop="14dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="14dp">
+
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="@drawable/bg_overlay_error_icon">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="Error"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_error_wifi" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/overlay_error_title"
+                        android:textColor="#8F1D1D"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/txtErrorMessage"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:lineSpacingExtra="2dp"
+                        android:text="@string/error_no_internet_body"
+                        android:textColor="#A53A3A"
+                        android:textSize="14sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnErrorRetry"
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:layout_marginTop="10dp"
+                        android:backgroundTint="#0A2342"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:text="@string/overlay_error_action"
+                        android:textAllCaps="false"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="20dp"
+                        app:icon="@drawable/ic_refresh"
+                        app:iconGravity="textStart"
+                        app:iconPadding="6dp"
+                        app:iconSize="16dp"
+                        app:iconTint="#FFFFFF" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <LinearLayout
+            android:id="@+id/layoutDoneButtons"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnStopTask"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:text="Stop"
+                android:textColor="#EF4444"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                app:cornerRadius="26dp"
+                app:strokeColor="#EF4444"
+                app:strokeWidth="1.5dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnShowAgain"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:text="Show Again"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                app:cornerRadius="26dp"
+                app:strokeColor="#80FFFFFF"
+                app:strokeWidth="1.5dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDoneStep"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:backgroundTint="#FFFFFF"
+                android:text="Done"
+                android:textColor="#1565C0"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                app:cornerRadius="26dp" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView
             android:id="@+id/cardUserQuery"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
-            android:orientation="horizontal"
-            android:background="@drawable/bubble_user"
-            android:padding="12dp"
-            android:layout_marginBottom="8dp"
-            android:layout_marginStart="60dp"
-            android:gravity="center_vertical"
-            android:elevation="2dp"
-            android:visibility="gone">
+            android:layout_marginTop="14dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="#20FFFFFF"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="0dp"
+            app:strokeColor="#26FFFFFF"
+            app:strokeWidth="1dp">
 
             <TextView
                 android:id="@+id/txtUserQuery"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text=""
+                android:maxWidth="260dp"
+                android:paddingStart="14dp"
+                android:paddingTop="12dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="12dp"
                 android:textColor="#FFFFFF"
-                android:textSize="15sp" />
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </com.google.android.material.card.MaterialCardView>
 
-        </LinearLayout>
-
-        <!-- AI Response Bubble -->
+        <!-- Quick actions removed — overlay now shows only guidance card + floating mic.
+             Hidden stubs kept for Java findViewById null safety. -->
         <LinearLayout
-            android:id="@+id/cardGuidance"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="start"
-            android:orientation="horizontal"
-            android:background="@drawable/bubble_ai"
-            android:padding="14dp"
-            android:layout_marginEnd="40dp"
-            android:gravity="center_vertical"
-            android:elevation="4dp">
+            android:id="@+id/layoutQuickActionsSection"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone">
 
-            <!-- AI Avatar -->
-            <ImageView
-                android:id="@+id/iconGuidance"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:src="@android:drawable/ic_menu_help"
-                android:tint="#FFFFFF"
-                android:background="@drawable/avatar_ai"
-                android:padding="8dp" />
-
-            <!-- AI Text -->
             <TextView
-                android:id="@+id/txtGuidance"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginEnd="8dp"
-                android:text="Hi! How can I help you?"
-                android:textColor="#333333"
-                android:textSize="16sp"
-                android:lineSpacingMultiplier="1.2" />
-
-        </LinearLayout>
-
-    </LinearLayout>
-
-    <!-- Bottom Input Bar with gradient border -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@drawable/input_bar_gradient_border"
-        android:padding="2dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:orientation="horizontal"
-            android:background="@drawable/input_bar_background"
-            android:paddingHorizontal="12dp"
-            android:gravity="center_vertical">
-
-            <!-- Keyboard Toggle Button -->
-            <ImageButton
-                android:id="@+id/btnKeyboardToggle"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_edit"
-                android:tint="#666666"
-                android:scaleType="centerInside"
-                android:padding="8dp"
-                android:contentDescription="Type" />
-
-            <!-- Center Area: Hint / Listening / Input -->
-            <FrameLayout
+                android:id="@+id/txtQuickActionsTitle"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:layout_marginHorizontal="8dp">
-
-                <!-- Default hint text -->
-                <TextView
-                    android:id="@+id/txtHint"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center_vertical"
-                    android:text="Tap to speak..."
-                    android:textColor="#999999"
-                    android:textSize="15sp" />
-
-                <!-- Listening indicator -->
-                <LinearLayout
-                    android:id="@+id/layoutListening"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:visibility="gone">
-
-                    <TextView
-                        android:id="@+id/txtListening"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Listening..."
-                        android:textColor="#5C9CE6"
-                        android:textSize="15sp"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-                <!-- Text Input -->
-                <EditText
-                    android:id="@+id/etQueryInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:background="@null"
-                    android:hint="Type your question..."
-                    android:inputType="text"
-                    android:imeOptions="actionSend"
-                    android:textSize="15sp"
-                    android:textColor="#333333"
-                    android:textColorHint="#999999"
-                    android:visibility="gone" />
-
-            </FrameLayout>
-
-            <!-- Voice Wave Animation -->
-            <com.smarthelp.app.VoiceWaveView
-                android:id="@+id/voiceWaveView"
-                android:layout_width="50dp"
-                android:layout_height="30dp"
+                android:layout_height="0dp"
                 android:visibility="gone" />
 
-            <!-- Mic Button -->
-            <ImageButton
-                android:id="@+id/btnMicrophone"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="@drawable/mic_button_background"
-                android:src="@android:drawable/ic_btn_speak_now"
-                android:tint="#FFFFFF"
-                android:scaleType="centerInside"
-                android:padding="10dp"
-                android:contentDescription="Speak" />
-
-            <!-- Send Button (hidden by default) -->
-            <ImageButton
-                android:id="@+id/btnSendText"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="@drawable/mic_button_background"
-                android:src="@android:drawable/ic_menu_send"
-                android:tint="#FFFFFF"
-                android:scaleType="centerInside"
-                android:padding="10dp"
-                android:contentDescription="Send"
+            <TextView
+                android:id="@+id/txtQuickActionsSubtitle"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
                 android:visibility="gone" />
 
-            <!-- Close/Minimize Button -->
-            <ImageButton
-                android:id="@+id/btnMinimize"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_menu_close_clear_cancel"
-                android:tint="#999999"
-                android:scaleType="centerInside"
-                android:padding="6dp"
-                android:contentDescription="Close" />
+            <LinearLayout
+                android:id="@+id/layoutQuickActions"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
 
+            <TextView
+                android:id="@+id/btnMoreActions"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
         </LinearLayout>
 
-    </FrameLayout>
+        <!-- Hidden stubs for Java references (replaced by floating mic overlay) -->
+        <LinearLayout android:id="@+id/cardInputBar" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <TextView android:id="@+id/txtInputLabel" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <TextView android:id="@+id/txtHint" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <TextView android:id="@+id/txtListening" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <com.smarthelp.app.VoiceWaveView android:id="@+id/voiceWaveView" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <LinearLayout android:id="@+id/layoutThinking" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone">
+            <TextView android:id="@+id/txtThinkingDots" android:layout_width="0dp" android:layout_height="0dp" />
+        </LinearLayout>
+        <View android:id="@+id/viewMicGlow" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
+        <com.google.android.material.floatingactionbutton.FloatingActionButton android:id="@+id/btnMicrophone" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
 
-    <!-- Hidden compatibility views -->
-    <TextView
-        android:id="@+id/txtStepCounter"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
+        <TextView
+            android:id="@+id/txtWelcomeLabel"
+            android:layout_width="1dp"
+            android:layout_height="1dp"
+            android:visibility="gone" />
 
-    <View
-        android:id="@+id/layoutVoiceInput"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="visible" />
-
-    <View
-        android:id="@+id/layoutTextInput"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
-
-    <View
-        android:id="@+id/btnRepeat"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
-
-    <View
-        android:id="@+id/btnNext"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
-
-    <View
-        android:id="@+id/btnStop"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
-
-</LinearLayout>
+        <TextView
+            android:id="@+id/txtWelcomeSubtitle"
+            android:layout_width="1dp"
+            android:layout_height="1dp"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>

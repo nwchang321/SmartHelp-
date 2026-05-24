@@ -27,6 +27,9 @@ import android.util.Log;
 import android.view.WindowManager;
 
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
+
+import com.google.gson.JsonArray;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -36,9 +39,15 @@ public class ScreenCaptureService extends Service {
     private static final String TAG = "SmartHelp.Capture";
     private static final String CHANNEL_ID = "smarthelp_capture_channel";
     private static final int NOTIFICATION_ID = 1001;
+    public static final String ACTION_ANALYZE_REQUEST = "com.smarthelp.ANALYZE_REQUEST";
+    public static final String ACTION_STOP_SERVICE = "com.smarthelp.STOP_SERVICE";
+    public static final String ACTION_SERVICE_STOPPED = "com.smarthelp.SERVICE_STOPPED";
 
     // Capture interval in milliseconds (only when auto-capture is enabled)
     private static final long CAPTURE_INTERVAL_MS = 10000; // 10 seconds for auto mode
+    private static final int MAX_CAPTURE_RETRIES = 8;
+    private static final long CAPTURE_RETRY_DELAY_MS = 150;
+    private static final int JPEG_QUALITY = 70;
 
     private MediaProjection mediaProjection;
     private VirtualDisplay virtualDisplay;
@@ -47,7 +56,6 @@ public class ScreenCaptureService extends Service {
     private Handler handler;
     private Runnable captureRunnable;
 
-    private ApiClient apiClient;
     private int screenWidth;
     private int screenHeight;
     private int screenDensity;
@@ -55,10 +63,16 @@ public class ScreenCaptureService extends Service {
     private boolean isCapturing = false;
     private boolean autoCapture = false; // Disabled by default - only capture on user request
 
-    // Current user query
-    private String pendingUserQuery = null;
+    // Shared memory for fast cross-service transfer without hitting Intent size limits
+    public static String latestScreenshotBase64 = null;
+    public static int latestScreenshotWidth = 0;
+    public static int latestScreenshotHeight = 0;
+    public static JsonArray latestAccessibilitySnapshot = new JsonArray();
 
-    // Broadcast receiver for analyze requests
+    // Lightweight hash of the latest screenshot for change detection (Plan 2: screenshot comparison)
+    public static long latestScreenshotHash = 0;
+
+    // Broadcast receiver for capture requests
     private BroadcastReceiver analyzeRequestReceiver;
 
     @Override
@@ -66,7 +80,6 @@ public class ScreenCaptureService extends Service {
         super.onCreate();
         Log.d(TAG, "ScreenCaptureService onCreate");
 
-        apiClient = new ApiClient();
         handler = new Handler(Looper.getMainLooper());
 
         // Get real screen dimensions (including navigation bar)
@@ -78,13 +91,7 @@ public class ScreenCaptureService extends Service {
         screenHeight = metrics.heightPixels;
         screenDensity = metrics.densityDpi;
 
-        Log.d(TAG, "Real screen size: " + screenWidth + "x" + screenHeight);
-
-        // Scale down for faster processing (1/2 for better position accuracy)
-        screenWidth = screenWidth / 2;
-        screenHeight = screenHeight / 2;
-
-        Log.d(TAG, "Screen size scaled to: " + screenWidth + "x" + screenHeight);
+        Log.d(TAG, "Screen size: " + screenWidth + "x" + screenHeight);
 
         // Create notification channel FIRST
         createNotificationChannel();
@@ -97,23 +104,24 @@ public class ScreenCaptureService extends Service {
         analyzeRequestReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if ("com.smarthelp.ANALYZE_REQUEST".equals(intent.getAction())) {
-                    String userQuery = intent.getStringExtra("userQuery");
-                    Log.d(TAG, "Received analyze request with query: " + userQuery);
-
-                    // Store the query and trigger immediate capture
-                    pendingUserQuery = userQuery;
+                String action = intent.getAction();
+                if (ACTION_ANALYZE_REQUEST.equals(action)) {
+                    Log.d(TAG, "Received capture request from Overlay");
                     handler.post(() -> captureScreen());
+                } else if (ACTION_STOP_SERVICE.equals(action)) {
+                    Log.d(TAG, "Received stop request");
+                    handler.post(() -> shutdownAndStop());
                 }
             }
         };
 
-        IntentFilter filter = new IntentFilter("com.smarthelp.ANALYZE_REQUEST");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(analyzeRequestReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(analyzeRequestReceiver, filter);
-        }
+        IntentFilter filter = new IntentFilter(ACTION_ANALYZE_REQUEST);
+        filter.addAction(ACTION_STOP_SERVICE);
+        ContextCompat.registerReceiver(
+                this,
+                analyzeRequestReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED);
         Log.d(TAG, "Analyze request receiver registered");
     }
 
@@ -124,6 +132,11 @@ public class ScreenCaptureService extends Service {
         // MUST call startForeground immediately
         startForeground(NOTIFICATION_ID, createNotification());
         Log.d(TAG, "Foreground service started");
+
+        if (intent != null && ACTION_STOP_SERVICE.equals(intent.getAction())) {
+            shutdownAndStop();
+            return START_NOT_STICKY;
+        }
 
         if (intent != null) {
             int resultCode = intent.getIntExtra("resultCode", -1);
@@ -232,7 +245,24 @@ public class ScreenCaptureService extends Service {
         isCapturing = false;
         if (captureRunnable != null) {
             handler.removeCallbacks(captureRunnable);
+            captureRunnable = null;
         }
+    }
+
+    private void shutdownAndStop() {
+        Log.d(TAG, "Shutting down ScreenCaptureService");
+        stopCapturing();
+        if (handler != null) {
+            handler.removeCallbacksAndMessages(null);
+        }
+        latestScreenshotBase64 = null;
+        latestScreenshotWidth = 0;
+        latestScreenshotHeight = 0;
+        latestScreenshotHash = 0;
+        releaseCaptureResources();
+        broadcastServiceStopped();
+        stopForeground(STOP_FOREGROUND_REMOVE);
+        stopSelf();
     }
 
     private void captureScreen() {
@@ -247,42 +277,28 @@ public class ScreenCaptureService extends Service {
         sendBroadcast(hideIntent);
         Log.d(TAG, "Sent HIDE_OVERLAY broadcast");
 
-        // Wait longer for overlay to fully hide, then capture
-        handler.postDelayed(() -> doCaptureScreen(), 500);
+        // Wait for overlay windows to be hidden, then capture the latest available frame.
+        handler.postDelayed(() -> doActualCapture(0), 650);
     }
 
-    private void doCaptureScreen() {
-        if (imageReader == null) {
-            Log.w(TAG, "ImageReader is null");
-            return;
-        }
-
-        // Discard any old cached frames first
-        Image oldImage = imageReader.acquireLatestImage();
-        if (oldImage != null) {
-            oldImage.close();
-            Log.d(TAG, "Discarded old cached frame");
-        }
-
-        // Wait a bit more for fresh frame, then capture
-        handler.postDelayed(() -> doActualCapture(), 100);
-    }
-
-    private void doActualCapture() {
+    private void doActualCapture(int retryCount) {
         if (imageReader == null) {
             Log.w(TAG, "ImageReader is null");
             return;
         }
 
         Image image = null;
+        boolean shouldShowOverlay = true;
         try {
             image = imageReader.acquireLatestImage();
             if (image == null) {
-                Log.d(TAG, "No image available yet");
-                // Show overlay again if capture failed
-                Intent showIntent = new Intent("com.smarthelp.SHOW_OVERLAY");
-                showIntent.setPackage(getPackageName());
-                sendBroadcast(showIntent);
+                if (retryCount < MAX_CAPTURE_RETRIES) {
+                    Log.d(TAG, "No image available yet, retrying " + (retryCount + 1) + "/" + MAX_CAPTURE_RETRIES);
+                    shouldShowOverlay = false;
+                    handler.postDelayed(() -> doActualCapture(retryCount + 1), CAPTURE_RETRY_DELAY_MS);
+                    return;
+                }
+                Log.d(TAG, "No image available after retries");
                 return;
             }
 
@@ -309,12 +325,28 @@ public class ScreenCaptureService extends Service {
                 bitmap = croppedBitmap;
             }
 
+            // Compute lightweight hash BEFORE compression for change detection
+            latestScreenshotHash = computeBitmapHash(bitmap);
+            latestScreenshotWidth = bitmap.getWidth();
+            latestScreenshotHeight = bitmap.getHeight();
+            latestAccessibilitySnapshot = SmartHelpAccessibilityService.getVisibleControlsSnapshot(
+                    latestScreenshotWidth,
+                    latestScreenshotHeight
+            );
+
             // Convert to base64
             String base64Image = bitmapToBase64(bitmap);
-            Log.d(TAG, "Base64 image size: " + base64Image.length() + " chars");
+            Log.d(TAG, "Base64 image size: " + base64Image.length()
+                    + " chars, size: " + latestScreenshotWidth + "x" + latestScreenshotHeight
+                    + ", hash: " + latestScreenshotHash);
 
-            // Send to server for analysis
-            analyzeScreenshot(base64Image);
+            // Expose broadly to OverlayService
+            latestScreenshotBase64 = base64Image;
+
+            // Notify OverlayService that screenshot is ready
+            Intent intent = new Intent("com.smarthelp.SCREENSHOT_READY");
+            intent.setPackage(getPackageName());
+            sendBroadcast(intent);
 
             bitmap.recycle();
 
@@ -324,68 +356,45 @@ public class ScreenCaptureService extends Service {
             if (image != null) {
                 image.close();
             }
-            // Show overlay again after capturing
-            Intent showIntent = new Intent("com.smarthelp.SHOW_OVERLAY");
-            showIntent.setPackage(getPackageName());
-            sendBroadcast(showIntent);
+            if (shouldShowOverlay) {
+                // Show overlay again after capturing or after a final capture failure.
+                Intent showIntent = new Intent("com.smarthelp.SHOW_OVERLAY");
+                showIntent.setPackage(getPackageName());
+                sendBroadcast(showIntent);
+            }
         }
+    }
+
+    /**
+     * Compute a lightweight perceptual hash by sampling an 8×8 grid of pixels.
+     * Quantizes each pixel to reduce noise from minor rendering differences.
+     * Two screenshots of the same screen state will produce the same hash.
+     */
+    static long computeBitmapHash(Bitmap bitmap) {
+        if (bitmap == null) return 0;
+        long hash = 17;
+        int w = bitmap.getWidth();
+        int h = bitmap.getHeight();
+        // Sample 8×8 grid = 64 points across the screen
+        for (int gy = 0; gy < 8; gy++) {
+            for (int gx = 0; gx < 8; gx++) {
+                int px = Math.min(gx * w / 8 + w / 16, w - 1);
+                int py = Math.min(gy * h / 8 + h / 16, h - 1);
+                int pixel = bitmap.getPixel(px, py);
+                // Keep top 4 bits of each channel to absorb minor pixel noise
+                int quantized = (pixel >> 4) & 0x0F0F0F0F;
+                hash = hash * 31 + quantized;
+            }
+        }
+        return hash;
     }
 
     private String bitmapToBase64(Bitmap bitmap) {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        // Compress to reduce size (Quality 40 is good enough for text/UI recognition)
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 40, outputStream);
+        // Keep UI text and small icons clear enough for coordinate grounding.
+        bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, outputStream);
         byte[] byteArray = outputStream.toByteArray();
         return Base64.encodeToString(byteArray, Base64.NO_WRAP);
-    }
-
-    private void analyzeScreenshot(String base64Image) {
-        // Get and clear the pending user query
-        String userQuery = pendingUserQuery;
-        pendingUserQuery = null;
-
-        Log.d(TAG, "Sending screenshot for analysis with query: " + userQuery);
-
-        apiClient.analyzeScreenshot(base64Image, userQuery, new ApiClient.AnalysisCallback() {
-            @Override
-            public void onSuccess(ApiClient.GuidanceResponse response) {
-                Log.d(TAG, "Analysis received: " + response.instruction);
-
-                // Send guidance to OverlayService via broadcast
-                Intent intent = new Intent("com.smarthelp.GUIDANCE_UPDATE");
-                intent.setPackage(getPackageName());
-
-                // Send simple instruction
-                intent.putExtra("instruction", response.instruction);
-
-                // Send highlight coordinates
-                if (response.highlight != null) {
-                    intent.putExtra("highlightX", response.highlight.x);
-                    intent.putExtra("highlightY", response.highlight.y);
-                    Log.d(TAG, "Highlight: x=" + response.highlight.x + ", y=" + response.highlight.y);
-                }
-
-                // Send completed flag
-                intent.putExtra("completed", response.completed);
-                Log.d(TAG, "Completed: " + response.completed);
-
-                sendBroadcast(intent);
-                Log.d(TAG, "Broadcast sent");
-            }
-
-            @Override
-            public void onError(String error) {
-                Log.e(TAG, "Analysis error: " + error);
-
-                // Send error to overlay
-                Intent intent = new Intent("com.smarthelp.GUIDANCE_UPDATE");
-                intent.setPackage(getPackageName());
-                intent.putExtra("instruction", "Sorry, something went wrong. Please try again.");
-                intent.putExtra("highlightX", -1);
-                intent.putExtra("highlightY", -1);
-                sendBroadcast(intent);
-            }
-        });
     }
 
     private void createNotificationChannel() {
@@ -425,17 +434,7 @@ public class ScreenCaptureService extends Service {
                 .build();
     }
 
-    @Override
-    public void onDestroy() {
-        Log.d(TAG, "ScreenCaptureService onDestroy");
-
-        stopCapturing();
-
-        // Unregister broadcast receiver
-        if (analyzeRequestReceiver != null) {
-            unregisterReceiver(analyzeRequestReceiver);
-        }
-
+    private void releaseCaptureResources() {
         if (virtualDisplay != null) {
             virtualDisplay.release();
             virtualDisplay = null;
@@ -447,9 +446,35 @@ public class ScreenCaptureService extends Service {
         }
 
         if (mediaProjection != null) {
-            mediaProjection.stop();
+            try {
+                mediaProjection.stop();
+            } catch (Exception e) {
+                Log.w(TAG, "MediaProjection stop failed: " + e.getMessage());
+            }
             mediaProjection = null;
         }
+    }
+
+    private void broadcastServiceStopped() {
+        Intent stoppedIntent = new Intent(ACTION_SERVICE_STOPPED);
+        stoppedIntent.setPackage(getPackageName());
+        sendBroadcast(stoppedIntent);
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.d(TAG, "ScreenCaptureService onDestroy");
+
+        stopCapturing();
+
+        // Unregister broadcast receiver
+        if (analyzeRequestReceiver != null) {
+            unregisterReceiver(analyzeRequestReceiver);
+            analyzeRequestReceiver = null;
+        }
+
+        releaseCaptureResources();
+        broadcastServiceStopped();
 
         super.onDestroy();
     }

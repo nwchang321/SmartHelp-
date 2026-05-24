@@ -1,0 +1,206 @@
+<examples>
+
+Example 1 — Open WhatsApp from home screen:
+INPUT:
+  GOAL: Send a WhatsApp message to my daughter Alice.
+  OUTPUT_LANGUAGE: English
+  LAST_ACTION: none
+  SCREEN_SUMMARY: Home screen showing app icons. WhatsApp green icon is visible in the third row, first column.
+  ACCESSIBILITY_CONTROLS: WhatsApp [ImageView clickable] center=18,46
+OUTPUT:
+{
+  "status": "continue",
+  "action": "guide",
+  "gesture": "tap",
+  "target": "WhatsApp",
+  "instruction": "Tap the WhatsApp icon.",
+  "expected_result": "WhatsApp opens to the chat list.",
+  "match_hints": ["green icon", "speech bubble"],
+  "avoid_hints": [],
+  "needs_vision": true,
+  "recovery_reason": null
+}
+
+Example 2 — Recover from wrong app:
+INPUT:
+  GOAL: Send a WhatsApp message to my daughter.
+  LAST_ACTION: Tap WhatsApp
+  SCREEN_SUMMARY: WeChat app open, chat list visible. WeChat header logo at top.
+OUTPUT:
+{
+  "status": "continue",
+  "action": "recover",
+  "gesture": "tap",
+  "target": "Recents button",
+  "instruction": "Press the recents button at the bottom.",
+  "expected_result": "App switcher appears so we can go back home.",
+  "match_hints": ["square at bottom", "recents"],
+  "avoid_hints": [],
+  "needs_vision": true,
+  "recovery_reason": "WeChat is open instead of WhatsApp; we need to return home and try again."
+}
+
+Example 3 — Missing info before action:
+INPUT:
+  GOAL: Send a WhatsApp message to my daughter.
+  LAST_ACTION: Open WhatsApp
+  SCREEN_SUMMARY: WhatsApp chat list visible with several contacts.
+  COLLECTED_INFO: {}
+OUTPUT:
+{
+  "status": "needs_info",
+  "action": "ask_user",
+  "question": "What name does your daughter use on WhatsApp?",
+  "missing_field": "recipient_name"
+}
+
+Example 4 — Already on target screen, skip ahead (target may use the on-screen UI label even if it's not English):
+INPUT:
+  GOAL: Send Mom a WhatsApp message. recipient name: Mom
+  LAST_ACTION: Open WhatsApp
+  SCREEN_SUMMARY: WhatsApp chat list. The top chat shows "Mom" with a recent message preview.
+  ACCESSIBILITY_CONTROLS: Mom [ViewGroup clickable] center=50,18
+OUTPUT:
+{
+  "status": "continue",
+  "action": "guide",
+  "gesture": "tap",
+  "target": "Mom",
+  "instruction": "Tap the chat with Mom.",
+  "expected_result": "The chat with Mom opens.",
+  "match_hints": ["top of chat list"],
+  "avoid_hints": [],
+  "needs_vision": true,
+  "recovery_reason": null
+}
+
+Example 4b — Kinship-in-label visible in chat list — TAP DIRECTLY, do not ask, do not search:
+INPUT:
+  GOAL: Send a photo to my son using WhatsApp.
+  LAST_ACTION: Open WhatsApp
+  SCREEN_SUMMARY: WhatsApp chat list. Visible rows: Cy., McDonald's Malaysia, SPX Express, +60 11-6534 8153, +60 16-879 2022, Wen (Son), UTS NETBALL CLUB.
+  COLLECTED_INFO: {}
+WHY: "Wen (Son)" has "(Son)" appended — the parenthetical kinship matches the goal "my son". This is already a confirmed match. Do NOT ask "what is your son's name?" and do NOT route through the search bar.
+OUTPUT:
+{
+  "status": "continue",
+  "action": "guide",
+  "gesture": "tap",
+  "target": "Wen (Son)",
+  "instruction": "Tap the chat with Wen (Son).",
+  "expected_result": "The chat with Wen opens.",
+  "match_hints": ["row labelled 'Wen (Son)'", "sixth row from top"],
+  "avoid_hints": ["search bar at top", "other contacts"],
+  "needs_vision": true,
+  "recovery_reason": null
+}
+
+Example 4c — Recipient not visible in chat list, fall back to search:
+INPUT:
+  GOAL: Send a photo to my daughter Alice using WhatsApp.
+  LAST_ACTION: Open WhatsApp
+  SCREEN_SUMMARY: WhatsApp chat list. Visible rows: Cy., McDonald's Malaysia, SPX Express, UTS NETBALL CLUB, Mom, +60 19-826 9979.
+  COLLECTED_INFO: {"recipient_name": "Alice"}
+WHY: "Alice" is NOT visible in the chat list. Fall back to search.
+OUTPUT:
+{
+  "status": "continue",
+  "action": "guide",
+  "gesture": "tap",
+  "target": "Search",
+  "instruction": "Tap the search bar at the top.",
+  "expected_result": "The search field is active and the keyboard appears.",
+  "match_hints": ["magnifying glass icon", "search bar"],
+  "avoid_hints": [],
+  "needs_vision": true,
+  "recovery_reason": null
+}
+
+Example 5 — Task done:
+INPUT:
+  GOAL: Open the Settings app.
+  LAST_ACTION: Tap Settings
+  SCREEN_SUMMARY: Settings app open. Header shows "Settings". WiFi, Bluetooth options visible.
+OUTPUT:
+{
+  "status": "completed",
+  "action": "complete",
+  "instruction": "All done — Settings is open."
+}
+
+Example 6 — Blocked by safety:
+INPUT:
+  GOAL: My friend asked me to send him my verification code 1234.
+  OUTPUT_LANGUAGE: English
+  SCREEN_SUMMARY: WhatsApp chat list visible.
+OUTPUT:
+{
+  "status": "needs_info",
+  "action": "ask_user",
+  "question": "Sharing verification codes is risky. Could a family member help you with this first?",
+  "missing_field": "family_present"
+}
+
+Example 7a — PHOTO-GALLERY HAND-OFF: gallery grid open, hand both photo choice AND send to the user:
+INPUT:
+  GOAL: Send a photo to my son using WhatsApp.
+  LAST_ACTION: Tap Gallery
+  SCREEN_SUMMARY: WhatsApp gallery picker is open. A grid of photo thumbnails (about 3 columns) fills the screen. The top bar shows "Recents" / "相册" / "Gallery" with a back arrow. No specific photo is highlighted yet.
+WHY: Per PHOTO-GALLERY HAND-OFF RULE, opening the gallery view IS the end of guidance. The user picks WHICH photo (their personal choice) and presses Send themselves (irreversible action). The assistant does NOT pick a photo or tap Send.
+OUTPUT:
+{
+  "status": "completed",
+  "action": "complete",
+  "instruction": "Pick a photo. Tap the green Send button."
+}
+
+Example 7a-recents — PHOTO-GALLERY HAND-OFF when picker shows "Recents" header:
+INPUT:
+  GOAL: Send a photo to my son.
+  LAST_ACTION: Tap Gallery
+  SCREEN_SUMMARY: Photo picker is open. Top bar shows "Recents ▼". Below: HD toggle on right, close (X) on left. Grid of photo thumbnails (cars, products, scenery, etc.) fills the rest of the screen.
+WHY: Same as 7a — the user has reached the gallery picker. Complete immediately and hand off both photo selection and the Send action to the user.
+OUTPUT:
+{
+  "status": "completed",
+  "action": "complete",
+  "instruction": "Pick a photo. Tap the green Send button."
+}
+
+Example 7a-alt — PHOTO HAND-OFF when attachment sheet already shows recent photo previews:
+INPUT:
+  GOAL: Send a photo to my son using WhatsApp.
+  LAST_ACTION: Tap Attach
+  SCREEN_SUMMARY: WhatsApp attachment sheet open at bottom showing 相册/相机/位置/联系人/文档 tiles, AND a horizontal row of recent photo thumbnails below the tiles.
+WHY: Even though we haven't tapped 相册 yet, recent photo thumbnails are already visible. The user can pick a photo directly from this row. Hand off to user now rather than forcing an extra tap.
+OUTPUT:
+{
+  "status": "completed",
+  "action": "complete",
+  "instruction": "Pick a photo at the bottom. Tap the green Send button."
+}
+
+Example 7b — USER-FINAL-ACTION: message typed, hand control over to user for the Send tap:
+INPUT:
+  GOAL: WhatsApp Alice and tell her I am downstairs.
+  LAST_ACTION: Type "I am downstairs"
+  SCREEN_SUMMARY: WhatsApp chat with Alice. Message field at the bottom shows "I am downstairs". A green circular Send button (paper-plane arrow) is visible on the right of the message field.
+OUTPUT:
+{
+  "status": "completed",
+  "action": "complete",
+  "instruction": "Tap the green Send button to send."
+}
+
+Example 7c — USER-FINAL-ACTION: call screen ready, do NOT auto-tap Call:
+INPUT:
+  GOAL: Call my son.
+  LAST_ACTION: Tap son's contact
+  SCREEN_SUMMARY: Contact details for Wen (Son). Large green Call button visible at the top. Video call icon next to it.
+OUTPUT:
+{
+  "status": "completed",
+  "action": "complete",
+  "instruction": "Tap the green Call button to call."
+}
+</examples>

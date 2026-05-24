@@ -1,34 +1,151 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">SmartHelp+</string>
+    <string name="accessibility_service_description">Reads visible app controls so SmartHelp+ can place guidance highlights accurately.</string>
+    <string name="home_greeting_morning_clean">Good morning</string>
+    <string name="home_greeting_afternoon_clean">Good afternoon</string>
+    <string name="home_greeting_evening_clean">Good evening</string>
+    <string name="home_subtitle_new">Gentle voice and visual guidance for everyday phone tasks.</string>
+    <string name="home_brand_badge">SMARTPHONE GUIDE FOR SENIORS</string>
+    <string name="home_hero_badge">LIVE AI HELP</string>
+    <string name="home_hero_title">Ask in your own words. We show where to tap.</string>
+    <string name="home_hero_body">SmartHelp+ listens to your goal, checks the screen you allow, and guides you one step at a time.</string>
+    <string name="home_chip_whatsapp">WhatsApp</string>
+    <string name="home_chip_settings">Settings</string>
+    <string name="home_chip_calls">Phone Calls</string>
+    <string name="home_chip_photos">Photos</string>
+    <string name="home_cta_eyebrow">QUICK START</string>
+    <string name="home_primary_idle">Start voice guide</string>
+    <string name="home_primary_active">Stop assistant</string>
+    <string name="home_primary_hint_idle">We will ask for microphone, overlay, and screen permissions before helping you.</string>
+    <string name="home_primary_hint_active">SmartHelp+ is active. Open any app and tell it what you want to do.</string>
+    <string name="home_cta_mode_voice">Voice first</string>
+    <string name="home_cta_mode_overlay">On-screen highlights</string>
+    <string name="home_section_title">How this helps</string>
+    <string name="home_section_body">Made to reduce confusion, not add more steps.</string>
+    <string name="home_card_one_title">Say the task naturally</string>
+    <string name="home_card_one_body">You can ask for help like "send a photo" or "turn on Wi-Fi".</string>
+    <string name="home_card_two_title">Follow one clear target</string>
+    <string name="home_card_two_body">A highlight appears on the right button or text field so each step feels obvious.</string>
+    <string name="home_card_three_title">Privacy stays in your hands</string>
+    <string name="home_card_three_body">Nothing starts until you allow it, and you can stop assistance any time.</string>
+    <string name="home_footer_title">Best for common tasks</string>
+    <string name="home_footer_body">Messages, calls, settings, photos, and other day-to-day actions on Android.</string>
 
-    <!-- Main Screen -->
-    <string name="title_welcome">Welcome to SmartHelp+</string>
-    <string name="subtitle_description">Your AI assistant for smartphone guidance</string>
-    <string name="btn_start_help">Start Help</string>
-    <string name="btn_stop_help">Stop Help</string>
+    <!-- Home Screen -->
+    <string name="home_greeting_morning">Good morning 👋</string>
+    <string name="home_greeting_afternoon">Good afternoon 👋</string>
+    <string name="home_greeting_evening">Good evening 👋</string>
+    <string name="home_subtitle">I\'m here to help you use your phone, step by step.</string>
+    <string name="home_privacy_badge">🔒 Your screen is private. We never save or share what we see.</string>
+    <string name="home_hint">Tap the button and tell me what you need — I\'ll guide you.</string>
     <string name="status_ready">Ready to help</string>
-    <string name="status_active">Helping you navigate...</string>
-    <string name="status_connecting">Connecting...</string>
+    <string name="status_active">Helping you now…</string>
+    <string name="status_listening">Listening…</string>
+    <string name="status_thinking">Let me check your screen…</string>
+    <string name="status_connecting">Connecting…</string>
 
-    <!-- Permissions -->
-    <string name="permission_overlay_title">Display Permission Needed</string>
-    <string name="permission_overlay_message">SmartHelp+ needs permission to display guidance on your screen. Please enable \"Display over other apps\" for SmartHelp+.</string>
-    <string name="permission_screen_title">Screen Sharing Permission</string>
-    <string name="permission_screen_message">SmartHelp+ needs to see your screen to provide guidance. Your screen content is only used to help you and is never stored.</string>
+    <!-- Buttons -->
+    <string name="btn_start_help">START HELP</string>
+    <string name="btn_stop_help">STOP HELP</string>
+    <string name="btn_repeat">Repeat</string>
+    <string name="btn_next">Next step</string>
+    <string name="btn_try_again">Try Again</string>
+    <string name="btn_type_instead">Type instead</string>
+    <string name="btn_continue">I understand, continue →</string>
+    <string name="btn_learn_privacy">Learn more about your privacy</string>
+    <string name="btn_yes_tap">✓ Yes, tap it</string>
+    <string name="btn_retry_target">↩ Try again</string>
+    <string name="btn_done">Done</string>
+    <string name="btn_ask_another">Ask something else</string>
+    <string name="btn_go_home">Go back to home</string>
+    <string name="overlay_error_title">Assistant unavailable</string>
+    <string name="overlay_error_action">Reconnect</string>
+    <string name="overlay_hint_hold">Tap the mic, then speak</string>
+
+    <!-- Permission Education -->
+    <string name="perm_edu_title">SmartHelp+ needs to see your screen</string>
+    <string name="perm_edu_point1">👁  I only look at your screen when you ask for help</string>
+    <string name="perm_edu_point2">🔒  Your screen is never saved or shared with anyone</string>
+    <string name="perm_edu_point3">✋  You can stop anytime by tapping STOP HELP</string>
+    <string name="perm_edu_badge">🛡️ Your privacy is protected</string>
+
+    <!-- Permission Request -->
+    <string name="permission_mic_title">Microphone Permission Required</string>
+    <string name="permission_mic_message">SmartHelp+ needs microphone access so it can hear your request when you tap the mic.</string>
+    <string name="permission_mic_settings_message">Microphone access was denied. You can enable it in Settings now, or continue without voice input.</string>
+    <string name="permission_mic_denied">Microphone permission is required for voice help.</string>
+    <string name="permission_mic_allow">Allow microphone</string>
+    <string name="permission_mic_skip">Continue without mic</string>
+    <string name="permission_open_settings">Open Settings</string>
+    <string name="permission_overlay_title">Overlay Permission Required</string>
+    <string name="permission_overlay_message">SmartHelp+ needs permission to display over other apps so it can guide you while you use your phone. Tap \"Open Settings\" and enable \"Allow display over other apps\".</string>
+    <string name="permission_screen_title">Screen Capture Permission Required</string>
+    <string name="permission_screen_message">SmartHelp+ needs to see your screen to guide you step by step. Tap \"Allow\" on the next screen to continue.</string>
+    <string name="perm_req_title">Android will now ask for permission</string>
+    <string name="perm_req_body">Please tap \'Allow\' on the next screen. This lets SmartHelp+ see your screen to help you.</string>
+    <string name="perm_req_tip">👆 Look for the word Allow and tap it.</string>
+    <string name="perm_req_note">You can remove this permission any time in Settings.</string>
+
+    <!-- Voice Listening -->
+    <string name="listening_title">I\'m listening…</string>
+    <string name="listening_hint">Tell me what you\'d like to do — there\'s no wrong way to ask.</string>
+    <string name="listening_timeout">I didn\'t hear anything. Tap the mic to try again.</string>
+
+    <!-- AI Processing -->
+    <string name="processing_title">Let me check your screen…</string>
+    <string name="processing_body">Give me just a moment to find the best way to help you.</string>
+
+    <!-- Guidance -->
+    <string name="guidance_hint">Follow the orange arrow</string>
+    <string name="guidance_confirm_title">Is this the right one?</string>
+    <string name="guidance_low_confidence">I\'m not fully sure — please double-check.</string>
+
+    <!-- Task Complete -->
+    <string name="complete_title">You did it! 🎉</string>
+    <string name="complete_subtitle">Well done! You completed the task successfully.</string>
+    <string name="complete_followup">What else can I help you with?</string>
+
+    <!-- Errors -->
+    <string name="error_no_internet_title">No internet connection</string>
+    <string name="error_no_internet_body">Please check your WiFi or mobile data, then tap Try Again.</string>
+    <string name="error_analysis_title">Something went wrong</string>
+    <string name="error_analysis_body">I couldn\'t understand your screen. Please tap Try Again.</string>
+    <string name="error_permission_title">Permission needed</string>
+    <string name="error_permission_body">Microphone permission is required. Please grant it in Settings.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_lang_english">English</string>
+    <string name="settings_lang_malay">Bahasa Melayu</string>
+    <string name="settings_voice">Voice &amp; Display</string>
+    <string name="settings_voice_speed">Voice Speed</string>
+    <string name="settings_text_size">Text Size</string>
+    <string name="settings_privacy">Privacy &amp; Safety</string>
+    <string name="settings_what_we_see">What we can see</string>
+    <string name="settings_clear_history">Clear history</string>
+    <string name="settings_privacy_policy">Privacy policy</string>
+    <string name="settings_version">Version 2.0.0 · SmartHelp+</string>
 
     <!-- Overlay -->
-    <string name="overlay_step_format">Step %1$d of %2$d</string>
-    <string name="btn_next">Next</string>
-    <string name="btn_stop">Stop</string>
-    <string name="btn_repeat">Repeat</string>
+    <string name="overlay_header">SmartHelp+ is helping you</string>
+    <string name="overlay_tap_hint">Tap the highlighted item</string>
+    <string name="overlay_hide">Hide</string>
+    <string name="overlay_low_conf_hint">⚠️ Please verify</string>
+    <string name="overlay_close_target">Drag here to close</string>
 
     <!-- Notifications -->
     <string name="notification_channel_name">SmartHelp+ Service</string>
     <string name="notification_title">SmartHelp+ is running</string>
     <string name="notification_message">Tap to open SmartHelp+</string>
 
-    <!-- Errors -->
-    <string name="error_connection">Could not connect to server. Please check your internet connection.</string>
-    <string name="error_analysis">Could not analyze screen. Please try again.</string>
+    <!-- Accessibility -->
+    <string name="cd_logo">SmartHelp+ logo</string>
+    <string name="cd_mic_button">Tap to speak</string>
+    <string name="cd_stop_button">Stop help</string>
+    <string name="cd_lang_toggle">Switch language</string>
+    <string name="cd_settings">Open settings</string>
+    <string name="cd_status_dot">Service status indicator</string>
+    <string name="cd_close_overlay_target">Close SmartHelp overlay</string>
 </resources>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pill used for the "No" button on the task-complete overlay.
+     Solid white fill (so the label stays readable on any app behind
+     the overlay) plus the same blue outline as btn_secondary_bg. -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#1A1565C0">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFFFF" />
+            <stroke
+                android:width="1.5dp"
+                android:color="#1565C0" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+</ripple>

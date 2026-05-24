@@ -7,6 +7,9 @@
 /android/build/
 /android/app/build/
 /android/captures
+/android/test-artifacts/
+/docs/testing/evidence/
+/docs/testing/elderly_user_test_render_check/
 .externalNativeBuild
 .cxx
 *.apk

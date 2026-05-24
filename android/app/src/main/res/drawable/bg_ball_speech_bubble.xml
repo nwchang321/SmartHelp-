@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark rounded speech-bubble body for the floating ball instruction label -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/overlay_bubble_dark" />
+    <corners android:radius="18dp" />
+</shape>

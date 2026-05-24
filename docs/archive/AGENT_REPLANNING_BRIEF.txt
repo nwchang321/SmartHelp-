@@ -1,0 +1,209 @@
+SmartHelp+ Agent Replanning Brief
+
+1. Project Summary
+
+SmartHelp+ is an Android assistive app for elderly users. Its job is to help a user complete smartphone tasks step by step with voice guidance and on-screen highlights.
+
+The runtime flow today is:
+- The Android app runs a persistent overlay and screen-capture service.
+- The user speaks or types a goal such as "Send a WhatsApp message to my daughter".
+- Android captures microphone audio, screenshots, and typed text, then sends them to a Node.js server over WebSocket.
+- The server creates one session controller per Android connection.
+- A planning component turns the user goal into structured steps.
+- A live multimodal guidance component looks at the screenshot and returns short audio instructions plus a single highlight tool call with x/y coordinates.
+- Android plays the audio, draws the highlight arrow, waits for the user to act, captures the next screenshot, and repeats until completion.
+
+This is not a true multi-agent system yet. It is a workflow architecture with one orchestrator, one planner, and one live guidance model, plus deterministic helper modules.
+
+2. Current Stack
+
+- Android app: Java, Android SDK, foreground services, MediaProjection, overlay windows, AccessibilityService, local SpeechRecognizer, OkHttp WebSocket client
+- Server: Node.js, Express, ws
+- Planner model: Gemini 2.5 Flash
+- Live guidance model: Gemini 2.5 Flash Native Audio preview
+- Prompt eval: promptfoo for planner-only evaluations
+
+3. Real Runtime Architecture In Code
+
+Android side:
+- MainActivity starts onboarding, permission flow, settings, and launches overlay + screen capture services.
+- OverlayService is the main runtime UX controller. It owns the overlay panel, floating ball mode, mic interactions, quick actions, screenshot requests, highlight display, retry/help buttons, reconnect handling, and safety pause behavior.
+- ScreenCaptureService captures screenshots on demand using MediaProjection and broadcasts them back through shared static memory.
+- GeminiLiveClient is the Android WebSocket client that streams audio to the server and plays returned audio.
+- SmartHelpAccessibilityService detects tap and window-change events so the overlay can verify faster.
+- SettingsActivity manages server address, language, sound, privacy, sensitive-screen protection, and quick actions.
+- AppPrefs stores language, server IP, recent tasks, recent tested server addresses, quick actions, onboarding state, and privacy/safety toggles.
+
+Server side:
+- src/index.js exposes /health and /live, and creates one OrchestratorAgent per Android client connection.
+- OrchestratorAgent is the workflow controller. It owns task state, retry logic, mode selection, Gemini reconnect logic, language detection, and Android message routing.
+- TaskAgent plans the task into structured steps. It uses an LLM plan first, but also includes heuristic hardcoded logic and fallback ask_user logic.
+- PromptContextBuilder creates structured context blocks for CHAT, NAVIGATE, VERIFY, RETRY, and HELP.
+- GeminiLiveAgent is a pure WebSocket transport layer to Gemini Live.
+- liveGuidanceConfig.js defines the live system prompt, audio response mode, and the single tool highlightElement(x, y, completed).
+- taskSchema.js defines the planner JSON schema.
+- server/src/prompts/guidance.system.txt is the live guidance system prompt.
+- server/src/prompts/task-planner.system.txt is the task-planning system prompt.
+- server/promptfoo/ evaluates planner behavior against a small set of structured test cases.
+
+4. Important Product Characteristics
+
+- Primary user: elderly smartphone users
+- UX style: calm, short, reassuring, low cognitive load
+- Primary output: short spoken instruction plus one visual highlight
+- Languages: English and Chinese are already built into the UX
+- Interaction model: one action at a time, verify from screenshot, then continue
+- Safety: basic scam-risk and sensitive-screen protection already exist
+- Platform constraint: real Android phone, not emulator-only usage
+- Network model: Android connects to a local/LAN server IP such as 192.168.x.x
+
+5. Current Strengths
+
+- Clear end-to-end product goal
+- Working Android overlay + screenshot + voice guidance loop
+- Structured planner schema instead of free-form plans
+- Strong separation between planning prompt and live guidance prompt
+- Screenshot verification is already a first-class concept
+- Safety and elderly-friendly wording are already reflected in prompts
+- Planner prompt has promptfoo evaluation coverage
+
+6. Current Weaknesses And Design Debt
+
+- The system calls things "agents", but most of them are deterministic modules. The architecture is really a controller plus two model-facing components.
+- OrchestratorAgent is doing too much: transport lifecycle, workflow state, retries, language routing, task progression, recovery logic, and Android message translation.
+- OverlayService is also too large and owns too many responsibilities: overlay UI, mic state, chat state, highlight state, retry timers, click-detection logic, reconnect UX, task completion UX, and safety pause behavior.
+- Planning is partially prompt-driven and partially heuristic-driven. WhatsApp and missing-detail handling are patched with code rules instead of a clean planner contract.
+- Clarification loops are still fragile. ask_user handling, replanning, and step resumption are tightly coupled.
+- Verification depends heavily on prompt obedience rather than a stronger explicit server-side state machine.
+- Android uses both local SpeechRecognizer and streamed audio to the server. Gemini transcription currently exists but is intentionally ignored, so the voice stack is conceptually split.
+- Screenshot exchange uses broadcasts plus shared static memory, which is pragmatic but brittle.
+- promptfoo currently evaluates planner quality only, not full screenshot-guidance behavior.
+- There is no durable session store, analytics layer, failure telemetry, or structured conversation/task trace model.
+
+7. What Needs Replanning
+
+The next design should answer these questions clearly:
+- Is this best kept as a strict workflow engine with a planner and a visual guide, or should it become a real multi-agent architecture?
+- If multiple agents are introduced, what exact responsibility does each own, and what contract do they use to talk to each other?
+- Which parts should remain deterministic state machines instead of being delegated to an LLM?
+- How should missing information, clarification, replanning, recovery, help mode, and safety escalation work without becoming prompt spaghetti?
+- How should Android state, server state, and task-progress state be modeled explicitly?
+- How do we evaluate the system beyond planner-only prompt tests?
+
+8. Recommended Replanning Goals
+
+- Keep latency low enough for live guidance
+- Keep the user experience one-step-at-a-time and elderly-friendly
+- Reduce prompt coupling and hidden heuristics
+- Make task state and workflow transitions explicit
+- Separate UI control from agent logic
+- Separate domain planning from screenshot interpretation
+- Make clarification and resume behavior reliable
+- Preserve bilingual output and safety constraints
+- Define measurable evaluation and test strategy
+
+9. Paste-Ready Prompt For Another AI
+
+Use the prompt below as-is:
+
+You are a senior AI systems architect and mobile product engineer. I need you to redesign the agent architecture for my project, SmartHelp+.
+
+Project context:
+SmartHelp+ is an Android app for elderly users that gives real-time voice guidance and visual highlights to help them perform smartphone tasks step by step. The current system captures screenshots from Android, sends them to a Node.js server, uses an LLM to plan a task into steps, uses a live multimodal model to inspect screenshots and return short spoken instructions plus a highlight coordinate, and loops until the task is complete.
+
+Current stack:
+- Android app in Java
+- Node.js backend with Express and ws
+- Gemini 2.5 Flash for task planning
+- Gemini Live audio model for screenshot-based live guidance
+- Android overlay UI, MediaProjection screen capture, AccessibilityService, local speech recognition
+
+Current runtime architecture:
+- Android MainActivity starts the app, permissions, onboarding, and services
+- OverlayService owns the floating guidance UI and much of the interaction logic
+- ScreenCaptureService captures screenshots on demand
+- GeminiLiveClient streams audio and screenshots between Android and the Node server
+- Node creates one OrchestratorAgent per Android client connection
+- OrchestratorAgent routes text, audio, and screenshots, tracks retries and task progress, and chooses modes such as CHAT, NAVIGATE, VERIFY, RETRY, and HELP
+- TaskAgent generates structured plans
+- PromptContextBuilder builds context blocks
+- GeminiLiveAgent is the WebSocket transport to Gemini Live
+- The system currently uses two main prompt files: one for planning and one for live guidance
+
+Important product constraints:
+- Primary users are elderly smartphone users
+- Instructions must be extremely short, calm, and easy to follow
+- The system should guide one action at a time
+- The system must verify progress from screenshots
+- English and Chinese support already exist
+- Safety matters for banking, OTP, scam-like flows, and sensitive screens
+- Low latency matters
+
+Current problems:
+- The architecture is called "agent-based", but in reality it is mostly one orchestrator plus helper modules
+- OrchestratorAgent is overloaded
+- OverlayService is overloaded
+- Planning logic is partly prompt-based and partly patched with heuristics
+- Clarification and replanning are brittle
+- Verification and recovery rely too much on prompt behavior
+- The voice stack is conceptually split between local Android speech recognition and server-side streaming
+- Evaluation is limited mostly to planner prompt tests
+
+What I want from you:
+1. Decide whether this system should remain a strict workflow architecture or become a true multi-agent architecture. Do not force multiple agents unless they add real value.
+2. Propose the best high-level architecture for this product.
+3. Clearly define each runtime component or agent, its responsibility, inputs, outputs, and state ownership.
+4. Separate deterministic workflow logic from model-driven logic.
+5. Redesign the task lifecycle for:
+   - new task intake
+   - missing information
+   - task planning
+   - screenshot guidance
+   - verification
+   - retries
+   - help mode
+   - safety escalation
+   - task completion
+6. Recommend what should run on Android versus on the server.
+7. Propose a better prompt strategy, including which prompts should exist, what each prompt should own, and where prompt boundaries should be.
+8. Propose a stronger evaluation strategy, including prompt tests, end-to-end tests, and failure logging.
+9. Give a migration plan from my current architecture to the new one without rewriting everything at once.
+
+Required output format:
+- Section 1: Executive recommendation
+- Section 2: Proposed architecture diagram in text
+- Section 3: Component-by-component responsibilities
+- Section 4: State machine or workflow transitions
+- Section 5: Prompt strategy
+- Section 6: Safety and recovery strategy
+- Section 7: Testing and evaluation plan
+- Section 8: Migration roadmap in phases
+- Section 9: Concrete examples using these tasks:
+  - "Send a WhatsApp message to my daughter"
+  - "Use the phone dialer to call my son"
+  - "Help me check whether this message, link, or QR code is a scam"
+
+Important guidance for your answer:
+- Be opinionated and practical
+- Optimize for reliability, not novelty
+- Keep the design grounded in my real constraints
+- If you recommend multiple agents, justify exactly why each one exists
+- If you think a state machine plus a small number of model-facing components is better than a large agent swarm, say so clearly
+- Call out which parts of my current system should be removed, split, or simplified
+
+10. Shorter Version If You Want A Faster Answer
+
+Redesign my SmartHelp+ agent architecture. It is an Android app for elderly users that gives short voice guidance and visual highlights to complete smartphone tasks one step at a time. Android captures screenshots and voice input, sends them to a Node.js server, a planner model creates steps, and a live multimodal model guides and verifies each step from screenshots. The current system has an overloaded orchestrator, an overloaded overlay service, brittle clarification/replanning logic, and too much prompt-driven behavior. I need a practical new architecture that improves reliability, separates deterministic workflow logic from LLM logic, keeps latency low, preserves safety and bilingual support, and gives me a phased migration plan. Do not assume a multi-agent swarm is necessary unless you can justify it.
+
+11. My Own Recommendation
+
+If another AI asks whether this should become a large multi-agent system, the likely correct answer is "no".
+
+A better direction is probably:
+- one explicit workflow controller
+- one task planner
+- one screenshot interpreter / guide
+- deterministic state machine transitions
+- optional domain-specific planners only when needed for safety-critical tasks
+
+In other words, simplify the architecture before making it more "agentic".

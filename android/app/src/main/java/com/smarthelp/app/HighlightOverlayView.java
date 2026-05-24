@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -19,12 +20,17 @@ import android.view.animation.AccelerateDecelerateInterpolator;
  * to guide elderly users to tap specific areas.
  */
 public class HighlightOverlayView extends View {
+    private static final String TAG = "HighlightOverlay";
 
     // Paints
     private Paint highlightPaint;
     private Paint highlightFillPaint;
     private Paint arrowPaint;
     private Paint pulseCirclePaint;
+    private Paint scrollArrowPaint;
+    private Paint scrollBgPaint;
+    private Paint centerDotPaint;
+    private Paint centerDotBorderPaint;
 
     // Target position
     private RectF targetRect;
@@ -45,6 +51,13 @@ public class HighlightOverlayView extends View {
     private float arrowBounceOffset = 0f;
     private ValueAnimator bounceAnimator;
     private boolean arrowPointsUp = false;
+    private final int[] viewLocationOnScreen = new int[2];
+
+    // Scroll direction mode
+    private boolean scrollDirectionMode = false;
+    private String scrollDirection = null;
+    private float scrollArrowBounceOffset = 0f;
+    private ValueAnimator scrollBounceAnimator;
 
     public HighlightOverlayView(Context context) {
         super(context);
@@ -57,6 +70,7 @@ public class HighlightOverlayView extends View {
     }
 
     private void init(Context context) {
+        setWillNotDraw(false);
         // Get real screen dimensions (including system bars)
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         DisplayMetrics metrics = new DisplayMetrics();
@@ -65,29 +79,47 @@ public class HighlightOverlayView extends View {
         screenWidth = metrics.widthPixels;
         screenHeight = metrics.heightPixels;
 
-        android.util.Log.d("HighlightOverlay", "Screen size: " + screenWidth + "x" + screenHeight);
+        android.util.Log.d(TAG, "Screen size: " + screenWidth + "x" + screenHeight);
 
-        // Initialize highlight border paint - bright red for visibility
+        // Initialize highlight border paint - bright orange for high visibility
         highlightPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         highlightPaint.setStyle(Paint.Style.STROKE);
-        highlightPaint.setColor(Color.parseColor("#FF3B30")); // Bright red
-        highlightPaint.setStrokeWidth(6f);
+        highlightPaint.setColor(Color.parseColor("#FF6B00")); // Bright orange
+        highlightPaint.setStrokeWidth(8f);
 
-        // Initialize highlight fill paint
+        // Initialize highlight fill paint - semi-transparent orange
         highlightFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         highlightFillPaint.setStyle(Paint.Style.FILL);
-        highlightFillPaint.setColor(Color.parseColor("#33FF3B30")); // Semi-transparent red
+        highlightFillPaint.setColor(Color.parseColor("#55FF6B00")); // Semi-transparent orange
 
-        // Initialize arrow paint - bright red
+        // Initialize arrow paint - bright orange
         arrowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         arrowPaint.setStyle(Paint.Style.FILL);
-        arrowPaint.setColor(Color.parseColor("#FF3B30")); // Bright red
+        arrowPaint.setColor(Color.parseColor("#FF6B00")); // Bright orange
 
         // Initialize pulse circle paint
         pulseCirclePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         pulseCirclePaint.setStyle(Paint.Style.STROKE);
-        pulseCirclePaint.setColor(Color.parseColor("#FF3B30"));
-        pulseCirclePaint.setStrokeWidth(4f);
+        pulseCirclePaint.setColor(Color.parseColor("#FF6B00"));
+        pulseCirclePaint.setStrokeWidth(5f);
+
+        // Initialize scroll direction arrow paint
+        scrollArrowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        scrollArrowPaint.setStyle(Paint.Style.FILL);
+        scrollArrowPaint.setColor(Color.parseColor("#FF6B00"));
+
+        // Initialize scroll direction background paint
+        scrollBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        scrollBgPaint.setStyle(Paint.Style.FILL);
+        scrollBgPaint.setColor(Color.parseColor("#33FF6B00"));
+
+        centerDotBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        centerDotBorderPaint.setStyle(Paint.Style.FILL);
+        centerDotBorderPaint.setColor(Color.WHITE);
+
+        centerDotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        centerDotPaint.setStyle(Paint.Style.FILL);
+        centerDotPaint.setColor(Color.parseColor("#FF3D00"));
 
         // Initialize arrow path
         arrowPath = new Path();
@@ -160,38 +192,131 @@ public class HighlightOverlayView extends View {
      * Set target position using percentage coordinates (0-100)
      */
     public void setTargetPositionPercent(float xPercent, float yPercent) {
-        // Calculate target position from percentage
-        int targetX = (int) (screenWidth * xPercent / 100.0f);
-        int targetY = (int) (screenHeight * yPercent / 100.0f);
+        setTargetPositionPercent(xPercent, yPercent, -1, -1, -1, -1);
+    }
 
-        android.util.Log.d("HighlightOverlay", "Percent: " + xPercent + "%, " + yPercent + "% -> Pixel: " + targetX + ", " + targetY);
+    public void setTargetPositionPercent(float xPercent, float yPercent, float x1Percent, float y1Percent, float x2Percent, float y2Percent) {
+        scrollDirectionMode = false;
+        scrollDirection = null;
+        if (scrollBounceAnimator != null) {
+            scrollBounceAnimator.cancel();
+        }
 
-        // Store target for touch detection (small area around target)
-        int boxSize = 80;
-        targetRect = new RectF(targetX - boxSize/2, targetY - boxSize/2,
-                               targetX + boxSize/2, targetY + boxSize/2);
+        int overlayWidth = getWidth() > 0 ? getWidth() : screenWidth;
+        int overlayHeight = getHeight() > 0 ? getHeight() : screenHeight;
 
+        float safeXPercent = Math.max(0f, Math.min(100f, xPercent));
+        float safeYPercent = Math.max(0f, Math.min(100f, yPercent));
+        int targetX = Math.round((overlayWidth - 1) * (safeXPercent / 100.0f));
+        int targetY = Math.round((overlayHeight - 1) * (safeYPercent / 100.0f));
+
+        android.util.Log.d(TAG, "Percent: " + xPercent + "%, " + yPercent
+                + "% -> Local: " + targetX + ", " + targetY
+                + " (overlay=" + overlayWidth + "x" + overlayHeight + ")");
+
+        targetX = Math.max(0, Math.min(targetX, overlayWidth - 1));
+        targetY = Math.max(0, Math.min(targetY, overlayHeight - 1));
+
+        targetRect = buildTargetRectFromPercentBounds(
+                targetX, targetY, overlayWidth, overlayHeight,
+                x1Percent, y1Percent, x2Percent, y2Percent);
+
+        configureArrow(targetX, targetY, safeYPercent, overlayWidth, overlayHeight);
+
+        postInvalidateOnAnimation();
+    }
+
+    public void setTargetBounds(Rect bounds) {
+        if (bounds == null || bounds.isEmpty()) {
+            return;
+        }
+        scrollDirectionMode = false;
+        scrollDirection = null;
+        if (scrollBounceAnimator != null) {
+            scrollBounceAnimator.cancel();
+        }
+
+        int overlayWidth = getWidth() > 0 ? getWidth() : screenWidth;
+        int overlayHeight = getHeight() > 0 ? getHeight() : screenHeight;
+        getLocationOnScreen(viewLocationOnScreen);
+
+        float left = bounds.left - viewLocationOnScreen[0];
+        float top = bounds.top - viewLocationOnScreen[1];
+        float right = bounds.right - viewLocationOnScreen[0];
+        float bottom = bounds.bottom - viewLocationOnScreen[1];
+        targetRect = enforceMinimumRect(new RectF(left, top, right, bottom));
+
+        int targetX = Math.round(targetRect.centerX());
+        int targetY = Math.round(targetRect.centerY());
+        float yPercent = overlayHeight <= 1 ? 50f : (targetY * 100f / (overlayHeight - 1));
+        configureArrow(targetX, targetY, yPercent, overlayWidth, overlayHeight);
+
+        android.util.Log.d(TAG, "Accessibility bounds: " + bounds.toShortString()
+                + " -> target=" + targetX + "," + targetY
+                + " (overlay=" + overlayWidth + "x" + overlayHeight
+                + ", origin=" + viewLocationOnScreen[0] + "," + viewLocationOnScreen[1] + ")");
+
+        postInvalidateOnAnimation();
+    }
+
+    private RectF buildTargetRectFromPercentBounds(
+            int targetX,
+            int targetY,
+            int overlayWidth,
+            int overlayHeight,
+            float x1Percent,
+            float y1Percent,
+            float x2Percent,
+            float y2Percent) {
+        if (x1Percent >= 0 && y1Percent >= 0 && x2Percent >= 0 && y2Percent >= 0) {
+            float left = overlayWidth * Math.max(0f, Math.min(100f, Math.min(x1Percent, x2Percent))) / 100f;
+            float top = overlayHeight * Math.max(0f, Math.min(100f, Math.min(y1Percent, y2Percent))) / 100f;
+            float right = overlayWidth * Math.max(0f, Math.min(100f, Math.max(x1Percent, x2Percent))) / 100f;
+            float bottom = overlayHeight * Math.max(0f, Math.min(100f, Math.max(y1Percent, y2Percent))) / 100f;
+            RectF bounded = new RectF(left, top, right, bottom);
+            return enforceMinimumRect(new RectF(
+                    targetX - bounded.width() / 2f,
+                    targetY - bounded.height() / 2f,
+                    targetX + bounded.width() / 2f,
+                    targetY + bounded.height() / 2f));
+        }
+        int boxSize = 72;
+        return new RectF(
+                targetX - boxSize / 2f,
+                targetY - boxSize / 2f,
+                targetX + boxSize / 2f,
+                targetY + boxSize / 2f);
+    }
+
+    private RectF enforceMinimumRect(RectF rect) {
+        float minSize = 56f;
+        float cx = rect.centerX();
+        float cy = rect.centerY();
+        float width = Math.max(minSize, rect.width());
+        float height = Math.max(minSize, rect.height());
+        return new RectF(cx - width / 2f, cy - height / 2f, cx + width / 2f, cy + height / 2f);
+    }
+
+    private void configureArrow(int targetX, int targetY, float yPercent, int overlayWidth, int overlayHeight) {
         // Position arrow directly above/below the target point
         arrowX = targetX;
 
-        // Arrow offset from target (closer now)
-        int arrowOffset = 60;
+        float arrowSize = 55f;
 
         if (yPercent < 20) {
-            // Element is at top, arrow points up from below
-            arrowY = targetY + arrowOffset;
+            // Element is at top, arrow points upward from below; tip lands on the dot.
+            arrowY = targetY + arrowSize;
             arrowPointsUp = true;
         } else {
-            // Arrow points down from above
-            arrowY = targetY - arrowOffset;
+            // Arrow points downward from above; tip lands on the dot.
+            arrowY = targetY - arrowSize;
             arrowPointsUp = false;
         }
 
         // Make sure arrow is visible on screen
-        arrowX = Math.max(40, Math.min(arrowX, screenWidth - 40));
-        arrowY = Math.max(60, Math.min(arrowY, screenHeight - 60));
+        arrowX = Math.max(40, Math.min(arrowX, overlayWidth - 40));
+        arrowY = Math.max(60, Math.min(arrowY, overlayHeight - 60));
 
-        invalidate();
     }
 
     /**
@@ -209,7 +334,44 @@ public class HighlightOverlayView extends View {
      */
     public void clearHighlight() {
         targetRect = null;
+        scrollDirectionMode = false;
+        scrollDirection = null;
+        if (scrollBounceAnimator != null) {
+            scrollBounceAnimator.cancel();
+        }
         invalidate();
+    }
+
+    public void setScrollDirection(String direction) {
+        this.scrollDirectionMode = true;
+        this.scrollDirection = direction;
+        this.targetRect = null;
+        startScrollBounceAnimation();
+        invalidate();
+    }
+
+    public void clearScrollDirection() {
+        this.scrollDirectionMode = false;
+        this.scrollDirection = null;
+        if (scrollBounceAnimator != null) {
+            scrollBounceAnimator.cancel();
+        }
+        invalidate();
+    }
+
+    private void startScrollBounceAnimation() {
+        if (scrollBounceAnimator != null) {
+            scrollBounceAnimator.cancel();
+        }
+        scrollBounceAnimator = ValueAnimator.ofFloat(0f, 30f, 0f);
+        scrollBounceAnimator.setDuration(1200);
+        scrollBounceAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        scrollBounceAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
+        scrollBounceAnimator.addUpdateListener(animation -> {
+            scrollArrowBounceOffset = (float) animation.getAnimatedValue();
+            invalidate();
+        });
+        scrollBounceAnimator.start();
     }
 
     private void startPulseAnimation() {
@@ -242,10 +404,131 @@ public class HighlightOverlayView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
+        if (scrollDirectionMode && scrollDirection != null) {
+            drawScrollDirectionArrow(canvas);
+            return;
+        }
+
         if (targetRect == null) return;
 
-        // Only draw the bouncing arrow (no box or pulsing circle)
-        drawArrow(canvas, arrowX, arrowY - arrowBounceOffset);
+        android.util.Log.d(TAG, "onDraw target=" + targetRect.toShortString()
+                + " canvas=" + canvas.getWidth() + "x" + canvas.getHeight());
+
+        float cx = targetRect.centerX();
+        float cy = targetRect.centerY();
+        float radius = Math.max(28f, Math.min(56f, Math.max(targetRect.width(), targetRect.height()) / 2f + 8f));
+
+        // 1. Pulsing outer ring (expanding animation)
+        if (pulseRadius > 0) {
+            pulseCirclePaint.setAlpha((int) (pulseAlpha * 120));
+            canvas.drawCircle(cx, cy, radius + pulseRadius * 0.45f, pulseCirclePaint);
+        }
+
+        // 2. Compact ring around the tappable element
+        canvas.drawCircle(cx, cy, radius, highlightFillPaint);
+        canvas.drawCircle(cx, cy, radius, highlightPaint);
+
+        // 3. Arrow tip points at the center dot.
+        float animatedArrowY = arrowPointsUp ? arrowY + arrowBounceOffset : arrowY - arrowBounceOffset;
+        drawArrow(canvas, arrowX, animatedArrowY);
+
+        // 4. Center dot is the exact tap point.
+        canvas.drawCircle(cx, cy, 11f, centerDotBorderPaint);
+        canvas.drawCircle(cx, cy, 6f, centerDotPaint);
+    }
+
+    private void drawScrollDirectionArrow(Canvas canvas) {
+        int w = canvas.getWidth();
+        int h = canvas.getHeight();
+        float arrowSize = 120f;
+        float cx, cy;
+        float bounceX = 0f, bounceY = 0f;
+
+        switch (scrollDirection) {
+            case "down":
+                cx = w / 2f;
+                cy = h - 200f;
+                bounceY = scrollArrowBounceOffset;
+                break;
+            case "up":
+                cx = w / 2f;
+                cy = 200f;
+                bounceY = -scrollArrowBounceOffset;
+                break;
+            case "left":
+                cx = 150f;
+                cy = h / 2f;
+                bounceX = -scrollArrowBounceOffset;
+                break;
+            case "right":
+                cx = w - 150f;
+                cy = h / 2f;
+                bounceX = scrollArrowBounceOffset;
+                break;
+            default:
+                return;
+        }
+
+        cx += bounceX;
+        cy += bounceY;
+
+        // Draw semi-transparent background pill
+        float bgPadding = 40f;
+        RectF bgRect;
+        if ("down".equals(scrollDirection) || "up".equals(scrollDirection)) {
+            bgRect = new RectF(cx - arrowSize - bgPadding, cy - arrowSize * 0.8f,
+                    cx + arrowSize + bgPadding, cy + arrowSize * 0.8f);
+        } else {
+            bgRect = new RectF(cx - arrowSize * 0.8f, cy - arrowSize - bgPadding,
+                    cx + arrowSize * 0.8f, cy + arrowSize + bgPadding);
+        }
+        canvas.drawRoundRect(bgRect, 30f, 30f, scrollBgPaint);
+
+        // Draw the arrow path
+        Path arrowPath = new Path();
+        switch (scrollDirection) {
+            case "down":
+                arrowPath.moveTo(cx, cy + arrowSize);
+                arrowPath.lineTo(cx - arrowSize * 0.6f, cy);
+                arrowPath.lineTo(cx - arrowSize * 0.2f, cy);
+                arrowPath.lineTo(cx - arrowSize * 0.2f, cy - arrowSize * 0.4f);
+                arrowPath.lineTo(cx + arrowSize * 0.2f, cy - arrowSize * 0.4f);
+                arrowPath.lineTo(cx + arrowSize * 0.2f, cy);
+                arrowPath.lineTo(cx + arrowSize * 0.6f, cy);
+                arrowPath.close();
+                break;
+            case "up":
+                arrowPath.moveTo(cx, cy - arrowSize);
+                arrowPath.lineTo(cx - arrowSize * 0.6f, cy);
+                arrowPath.lineTo(cx - arrowSize * 0.2f, cy);
+                arrowPath.lineTo(cx - arrowSize * 0.2f, cy + arrowSize * 0.4f);
+                arrowPath.lineTo(cx + arrowSize * 0.2f, cy + arrowSize * 0.4f);
+                arrowPath.lineTo(cx + arrowSize * 0.2f, cy);
+                arrowPath.lineTo(cx + arrowSize * 0.6f, cy);
+                arrowPath.close();
+                break;
+            case "left":
+                arrowPath.moveTo(cx - arrowSize, cy);
+                arrowPath.lineTo(cx, cy - arrowSize * 0.6f);
+                arrowPath.lineTo(cx, cy - arrowSize * 0.2f);
+                arrowPath.lineTo(cx + arrowSize * 0.4f, cy - arrowSize * 0.2f);
+                arrowPath.lineTo(cx + arrowSize * 0.4f, cy + arrowSize * 0.2f);
+                arrowPath.lineTo(cx, cy + arrowSize * 0.2f);
+                arrowPath.lineTo(cx, cy + arrowSize * 0.6f);
+                arrowPath.close();
+                break;
+            case "right":
+                arrowPath.moveTo(cx + arrowSize, cy);
+                arrowPath.lineTo(cx, cy - arrowSize * 0.6f);
+                arrowPath.lineTo(cx, cy - arrowSize * 0.2f);
+                arrowPath.lineTo(cx - arrowSize * 0.4f, cy - arrowSize * 0.2f);
+                arrowPath.lineTo(cx - arrowSize * 0.4f, cy + arrowSize * 0.2f);
+                arrowPath.lineTo(cx, cy + arrowSize * 0.2f);
+                arrowPath.lineTo(cx, cy + arrowSize * 0.6f);
+                arrowPath.close();
+                break;
+        }
+        canvas.drawPath(arrowPath, scrollArrowPaint);
     }
 
     private void drawArrow(Canvas canvas, float x, float y) {
@@ -286,6 +569,9 @@ public class HighlightOverlayView extends View {
         }
         if (bounceAnimator != null) {
             bounceAnimator.cancel();
+        }
+        if (scrollBounceAnimator != null) {
+            scrollBounceAnimator.cancel();
         }
     }
 }

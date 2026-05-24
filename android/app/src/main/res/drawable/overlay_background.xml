@@ -3,7 +3,4 @@
     android:shape="rectangle">
     <solid android:color="@color/overlay_background" />
     <corners android:radius="20dp" />
-    <stroke
-        android:width="2dp"
-        android:color="@color/primary" />
 </shape>

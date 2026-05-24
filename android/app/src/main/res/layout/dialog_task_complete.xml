@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TASK COMPLETE — Compact Yes/No pill overlay.
+     The AI has already spoken "All done. Do you need anything else?"
+     via TTS, so we just float two pill buttons over the user's screen
+     with no background card. Positioned above the bottom edge so it
+     clears the system nav bar and floating ball. -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:background="@android:color/transparent"
+    android:gravity="center"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <!-- YES — ask another / continue -->
+    <Button
+        android:id="@+id/btnAskAnother"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginEnd="10dp"
+        android:minHeight="56dp"
+        android:text="Yes"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_on_primary"
+        android:background="@drawable/btn_primary_bg"
+        android:elevation="6dp"
+        android:stateListAnimator="@null" />
+
+    <!-- NO — close session -->
+    <Button
+        android:id="@+id/btnGoHome"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="10dp"
+        android:minHeight="56dp"
+        android:text="No"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="@color/primary"
+        android:background="@drawable/btn_secondary_no_bg"
+        android:elevation="6dp"
+        android:stateListAnimator="@null" />
+
+</LinearLayout>

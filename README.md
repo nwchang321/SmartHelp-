@@ -1,177 +1,209 @@
-# SmartHelp+ MVP
+# SmartHelp+
 
-AI-Based Smartphone Guidance App for Elderly Users
+> AI-powered, voice-first smartphone guidance assistant for elderly users.
+> Final Year Project — Bachelor of Computer Science (Hons), UTS.
 
-## Project Structure
+SmartHelp+ helps older Android users complete everyday phone tasks one step at a time. The user says (or taps) what they want to do — *"send a WhatsApp message to my daughter"*, *"open the camera"* — and the app captures the current screen, asks an AI pipeline what the next step is, then **speaks a short instruction and draws a highlight on the exact button to tap**. After the user taps, the system takes another screenshot, verifies progress, and continues until the task is done.
 
+The app **never taps for the user**. It only guides.
+
+---
+
+## Architecture at a glance
+
+```text
+┌────────────────────┐    LiveKit WebRTC   ┌──────────────────────┐
+│   Android client   │  ─────────────────▶ │   LiveKit Cloud      │
+│                    │   audio + video     │   (room/media SFU)   │
+│  - OverlayService  │  ◀─────────────────  │                      │
+│  - ScreenCapture   │   data channel JSON └──────────┬───────────┘
+│  - Accessibility   │                                │
+│  - TTS playback    │                                ▼
+└────────┬───────────┘                     ┌──────────────────────┐
+         │  HTTP :8765 (token issue)       │ Python LiveKit Agent │
+         └─────────────────────────────────▶│  (multi-stage AI)    │
+                                            └──────────┬───────────┘
+                                                       │
+                       ┌───────────────────────────────┴────────────────┐
+                       │      Gemini multi-agent pipeline               │
+                       │  STT → Intent → Safety → ReAct → Executor     │
+                       │  → Vision Grounding / Accessibility Fast Path │
+                       │  → TTS                                         │
+                       └───────────────────────────────────────────────┘
 ```
+
+The Python agent replaces the older Node.js WebSocket server entirely.
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Android app | Java, Android SDK 26–34, Material Components |
+| Android capabilities | MediaProjection, AccessibilityService, SpeechRecognizer, Overlay Window, TTS |
+| Transport | LiveKit WebRTC — Audio Track (mic + TTS) + Data Channel (JSON messages) |
+| Token server | Python HTTP on port `8765` (issues short-lived LiveKit tokens) |
+| AI runtime | Python LiveKit Agent (`agent.py`) |
+| STT | Google Cloud Speech-to-Text (primary) + Gemini STT (fallback) |
+| Intent / ReAct navigation | `gemini-2.5-flash-lite` |
+| Vision grounding | `gemini-3-flash-preview` |
+| TTS | Gemini TTS (voice = **Aoede**, ZH/EN) |
+| Storage | SharedPreferences + in-memory state (no DB) |
+
+Each model is overridable via env vars (`GEMINI_INTENT_MODEL`, `GEMINI_REACT_MODEL`, `GEMINI_VISION_MODEL`, `GEMINI_TTS_MODEL`).
+
+---
+
+## Project structure
+
+```text
 SmartHelp/
-├── server/           # Node.js Backend
-│   ├── src/
-│   │   ├── index.js              # Express server
-│   │   ├── routes/analyze.js     # API endpoints
-│   │   └── services/geminiService.js  # Gemini AI integration
-│   ├── package.json
-│   └── .env.example
+├── android/                          # Android native app (Java)
+│   └── app/src/main/java/com/smarthelp/app/
+│       ├── MainActivity.java
+│       ├── OverlayService.java       # Main runtime UX controller
+│       ├── ScreenCaptureService.java # MediaProjection-based capture
+│       ├── HighlightOverlayView.java # On-screen arrow + highlight
+│       ├── SmartHelpAccessibilityService.java
+│       ├── network/                  # ServerConnection — LiveKit client
+│       ├── input/ overlay/ session/
+│       └── ...
 │
-└── android/          # Android App
-    └── app/
-        └── src/main/
-            ├── java/com/smarthelp/app/
-            │   ├── MainActivity.java        # Main UI
-            │   ├── ApiClient.java           # HTTP client
-            │   ├── ScreenCaptureService.java # Screen capture
-            │   └── OverlayService.java      # Visual + TTS guidance
-            ├── res/
-            └── AndroidManifest.xml
+├── server-python/                    # Python LiveKit Agent (the AI brain)
+│   ├── agent.py                      # Entry point — SmartHelpAgent
+│   ├── token_server.py               # HTTP token issuer (:8765)
+│   ├── intent_agent.py               # Intent classification
+│   ├── intent_safety_agent.py        # Risk gate before navigation
+│   ├── task_executor.py              # ReAct-controlled guidance loop
+│   ├── task_state_machine.py         # IDLE / INTAKE / GUIDING / VERIFYING / ...
+│   ├── vision_grounding_tool.py      # Pixel coordinates for highlight
+│   ├── navigation_react_agent.py     # ReAct loop for navigation
+│   ├── accessibility_fast_path.py    # Bypass vision when a11y node info is available
+│   ├── safety_gate.py                # High-risk prompt reminder
+│   ├── voice_synthesizer.py          # Gemini TTS wrapper
+│   ├── prompt_registry.py            # Centralised prompt templates
+│   ├── prompts/                      # Prompt files by stage
+│   └── tests/                        # pytest suite
+│
+├── docs/
+│   ├── architecture/                 # Current architecture references
+│   │   ├── MULTI_AGENT_REACT_PLAN.md
+│   │   └── SMARTHELP_MULTIAGENT_RUNTIME_DIAGRAMS.md
+│   ├── testing/                      # Test plans, evidence, templates
+│   ├── design.md                     # Visual design guide
+│   ├── UI_DESIGN_SPEC.md             # UI spec
+│   └── archive/                      # Old Node.js-era docs (kept for history)
+│
+├── branding/                         # Logos, color assets
+├── overview.md                       # Long-form project overview (Chinese)
+├── start-all.bat / start-all.ps1     # One-click launcher (Windows)
+├── stop-all.bat
+└── _run-agent.bat                    # Auto-restart wrapper used by start-all
 ```
 
-## Setup Instructions
+---
 
-### 1. Backend Server Setup
+## AI pipeline (multi-agent)
 
-```bash
-# Navigate to server directory
-cd SmartHelp/server
+Each user utterance flows through staged agents, not a single end-to-end model:
 
-# Install dependencies
-npm install
+1. **STT** — Google Cloud STT (Gemini STT as fallback) transcribes the mic audio.
+2. **Intent Agent** (`intent_agent.py`) — classifies the user's goal.
+3. **Intent Safety Agent** (`intent_safety_agent.py`) — blocks high-risk goals (banking transfers, OTP entry, unknown links) before navigation starts.
+4. **Navigation ReAct Agent** (`navigation_react_agent.py`) — decides one next action at a time from the goal, observations, accessibility metadata, and verification history.
+5. **Task State Machine** (`task_state_machine.py`) — drives state across `IDLE → INTAKE → GUIDING → AWAITING_ACTION → VERIFYING → RETRYING → HELPING → COMPLETED`.
+6. **Task Executor** (`task_executor.py`) — runs the ReAct loop and decides what to ask the user and what visual cue to show.
+7. **Vision Grounding** (`vision_grounding_tool.py`) — given the current screenshot, returns pixel coords for the highlight.
+8. **Accessibility Fast Path** (`accessibility_fast_path.py`) — when `AccessibilityNodeInfo` already pinpoints the target, skip vision.
+9. **TTS** (`voice_synthesizer.py`) — synthesises the short voice instruction (Aoede voice).
 
-# Create .env file from template
-copy .env.example .env
+The Android side stays thin: it captures, sends, plays, highlights, and waits for the user to tap.
 
-# Edit .env and add your Gemini API key
-# GEMINI_API_KEY=your_api_key_here
+---
 
-# Start the server
-npm start
+## Getting started
+
+### Prerequisites
+
+- Windows 10/11 (the launcher scripts are Windows-targeted)
+- Android Studio + ADB (`platform-tools`)
+- Python 3.13 with a virtualenv at `server-python/venv/`
+- A connected Android device or emulator (API ≥ 26)
+- A `.env` file in `server-python/` with:
+  - `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
+  - `GOOGLE_API_KEY` (Gemini)
+  - `GOOGLE_APPLICATION_CREDENTIALS` (Google Cloud STT service account JSON)
+
+### Install Python deps
+
+```powershell
+cd server-python
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 ```
 
-Server will run on `http://localhost:3000`
+### Run
 
-### 2. Test Server Connection
+One-click (recommended):
 
-```bash
-# Test if server is running
-curl http://localhost:3000/health
-
-# Test Gemini API connection
-curl http://localhost:3000/api/test
+```powershell
+.\start-all.bat
 ```
 
-### 3. Android App Setup
+This starts the token server, launches the LiveKit Agent under an auto-restart wrapper, and sets up `adb reverse tcp:8765`.
 
-1. Open Android Studio
-2. Select "Open an existing project"
-3. Navigate to `SmartHelp/android` folder
-4. Wait for Gradle sync to complete
-5. Build the project (Build > Make Project)
+To stop:
 
-### 4. Configure Server URL (Important!)
-
-Edit `ApiClient.java` and update the `BASE_URL`:
-
-```java
-// For Android Emulator:
-private static final String BASE_URL = "http://10.0.2.2:3000";
-
-// For Physical Device (replace with your computer's IP):
-private static final String BASE_URL = "http://192.168.x.x:3000";
+```powershell
+.\stop-all.bat
 ```
 
-To find your computer's IP:
-- Windows: `ipconfig` in Command Prompt
-- Mac/Linux: `ifconfig` in Terminal
+### Build the Android app
 
-### 5. Run the App
+Open `android/` in Android Studio, build & install onto the device, then grant:
+- Microphone
+- Display over other apps
+- Accessibility Service (SmartHelp+)
+- Screen capture (prompt appears on first use)
 
-1. Connect Android device or start emulator
-2. Make sure server is running
-3. Click "Run" in Android Studio
-4. Grant permissions when prompted:
-   - Overlay permission (Display over other apps)
-   - Screen capture permission
+---
 
-## Testing the MVP
+## Testing
 
-1. Start the Node.js server
-2. Install and open SmartHelp+ app
-3. Tap "Start Help"
-4. Grant permissions
-5. Navigate to any app (WhatsApp, Settings, etc.)
-6. SmartHelp+ will:
-   - Capture your screen every 5 seconds
-   - Analyze with Gemini AI
-   - Show floating guidance overlay
-   - Speak instructions via TTS
+Python unit tests:
 
-## API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Server health check |
-| `/api/status` | GET | API status |
-| `/api/test` | GET | Test Gemini connection |
-| `/api/analyze` | POST | Analyze screenshot |
-
-### Analyze Endpoint
-
-**Request:**
-```json
-{
-  "screenshot": "base64_encoded_image",
-  "userQuery": "How do I send a message?" // optional
-}
+```powershell
+cd server-python
+.\venv\Scripts\python.exe -m pytest
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "context": "WhatsApp chat screen",
-  "guidance": {
-    "voiceText": "Tap the text box at the bottom to type a message",
-    "steps": ["Tap the text box", "Type your message", "Tap send"],
-    "highlight": {
-      "position": "bottom-center",
-      "description": "Message input field"
-    }
-  }
-}
-```
+Manual / edge-case test plans and evidence live in [docs/testing/](docs/testing/).
 
-## Requirements
+---
 
-### Server
-- Node.js 18+
-- Gemini API Key
+## Documentation
 
-### Android
-- Android 8.0 (API 26) or higher
-- Internet connection
-- Permissions: Overlay, Screen Capture
+- [overview.md](overview.md) — long-form project description (Chinese; note: parts predate the Python rewrite and still describe the Node.js architecture — current code is authoritative)
+- [docs/architecture/MULTI_AGENT_REACT_PLAN.md](docs/architecture/MULTI_AGENT_REACT_PLAN.md) — multi-agent design rationale
+- [docs/architecture/SMARTHELP_MULTIAGENT_RUNTIME_DIAGRAMS.md](docs/architecture/SMARTHELP_MULTIAGENT_RUNTIME_DIAGRAMS.md) — runtime sequence diagrams
+- [docs/design.md](docs/design.md) — visual design language
+- [docs/UI_DESIGN_SPEC.md](docs/UI_DESIGN_SPEC.md) — UI specification
+- [docs/archive/](docs/archive/) — pre-rewrite documentation, kept for historical reference only
 
-## Troubleshooting
+---
 
-### Server Issues
-- Check if port 3000 is available
-- Verify Gemini API key in .env
-- Check internet connection
+## Safety boundaries
 
-### Android Issues
-- Ensure overlay permission is granted
-- Check if server URL is correct
-- For physical device: ensure same WiFi network as server
+By design, SmartHelp+ refuses to guide through:
+- Banking transfers, OTP / TAC / PIN entry, payment confirmations
+- Remote app installation
+- Suspicious links or unknown QR codes
 
-### MediaProjection Issues
-- Emulator may not support screen capture well
-- Test on physical device for best results
+These are intercepted by the **Intent Safety Agent** and **Safety Gate** before any plan is generated.
 
-## Next Steps
+---
 
-After MVP validation:
-1. Add Chinese language support
-2. Implement task-specific guidance
-3. Add Google ADK for multi-agent orchestration
-4. Create offline mode
-5. User testing with elderly participants
+## License & credits
+
+Final Year Project, Bachelor of Computer Science (Hons), School of Computing and Creative Media, University of Technology Sarawak.

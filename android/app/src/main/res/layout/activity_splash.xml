@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_hero_gradient">
+
+    <!-- ─── Decorative ring (outermost, largest) ─────────────────────────── -->
+    <View
+        android:layout_width="280dp"
+        android:layout_height="280dp"
+        android:alpha="0.08"
+        android:background="@drawable/circle_brand_ring"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.38" />
+
+    <!-- ─── Decorative ring (mid) ────────────────────────────────────────── -->
+    <View
+        android:layout_width="220dp"
+        android:layout_height="220dp"
+        android:alpha="0.12"
+        android:background="@drawable/circle_brand_ring"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.38" />
+
+    <!-- ─── Radial glow behind logo ──────────────────────────────────────── -->
+    <View
+        android:id="@+id/viewSplashGlow"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:alpha="0.75"
+        android:background="@drawable/bg_logo_glow"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.38" />
+
+    <!-- ─── Inner ring (closest to logo) ────────────────────────────────── -->
+    <View
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:alpha="0.22"
+        android:background="@drawable/circle_brand_ring"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.38" />
+
+    <!-- ─── App logo ─────────────────────────────────────────────────────── -->
+    <ImageView
+        android:id="@+id/imgSplashLogo"
+        android:layout_width="108dp"
+        android:layout_height="108dp"
+        android:contentDescription="@string/cd_logo"
+        android:scaleType="fitCenter"
+        android:src="@drawable/app_logo"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.38" />
+
+    <!-- ─── App name ─────────────────────────────────────────────────────── -->
+    <TextView
+        android:id="@+id/txtSplashAppName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:letterSpacing="0.04"
+        android:text="SmartHelp+"
+        android:textColor="#0A2342"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/viewSplashGlow" />
+
+    <!-- ─── Tagline ───────────────────────────────────────────────────────── -->
+    <TextView
+        android:id="@+id/txtSplashTagline"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginHorizontal="56dp"
+        android:lineSpacingMultiplier="1.5"
+        android:text="Your step-by-step smartphone guide"
+        android:textAlignment="center"
+        android:textColor="#1565C0"
+        android:textSize="15sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/txtSplashAppName" />
+
+    <!-- ─── Bottom section: thin loading bar + powered-by label ─────────── -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="52dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <!-- Thin indeterminate loading bar -->
+        <ProgressBar
+            android:id="@+id/progressSplash"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="120dp"
+            android:layout_height="3dp"
+            android:indeterminate="true"
+            android:indeterminateTint="#1565C0"
+            android:progressBackgroundTint="#331565C0" />
+
+        <!-- Powered-by label -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:letterSpacing="0.06"
+            android:text="POWERED BY GEMINI AI"
+            android:textAllCaps="true"
+            android:textColor="#801565C0"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

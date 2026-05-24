@@ -1,104 +1,255 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
+    <!-- ============================================================
+         SMARTHELP+ THEME — Premium Purple iOS-Inspired
+         ============================================================ -->
     <style name="Theme.SmartHelp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Primary brand color -->
+        <!-- Brand Colors -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_dark</item>
         <item name="colorOnPrimary">@color/text_on_primary</item>
-
-        <!-- Secondary brand color -->
         <item name="colorSecondary">@color/accent</item>
         <item name="colorSecondaryVariant">@color/accent_dark</item>
         <item name="colorOnSecondary">@color/text_on_primary</item>
-
-        <!-- Status bar color -->
-        <item name="android:statusBarColor">@color/primary_dark</item>
-
-        <!-- Background -->
+        <!-- Surface -->
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
         <item name="android:colorBackground">@color/background</item>
+        <item name="colorOnBackground">@color/text_primary</item>
+        <!-- Status bar — transparent for edge-to-edge -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <!-- Navigation bar — transparent for edge-to-edge -->
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- Typography -->
+        <item name="android:fontFamily">sans-serif</item>
+        <!-- Material Card defaults -->
+        <item name="materialCardViewStyle">@style/Widget.SmartHelp.Card</item>
     </style>
 
-    <!-- Large Button Style for Elderly Users -->
-    <style name="Widget.SmartHelp.Button.Large" parent="Widget.MaterialComponents.Button">
-        <item name="android:minHeight">72dp</item>
-        <item name="android:textSize">22sp</item>
+    <!-- Transparent, no-UI theme for permission-prompt activities -->
+    <style name="Theme.SmartHelp.Translucent" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Splash — purple immersive -->
+    <style name="Theme.SmartHelp.Splash" parent="Theme.SmartHelp">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!-- ============================================================
+         BUTTON STYLES — iOS Capsule Style
+         ============================================================ -->
+
+    <!-- Primary CTA — large capsule -->
+    <style name="Widget.SmartHelp.Button.Primary" parent="Widget.MaterialComponents.Button">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:textSize">17sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="cornerRadius">20dp</item>
-        <item name="android:padding">20dp</item>
+        <item name="android:textColor">@color/text_on_primary</item>
         <item name="android:letterSpacing">0.02</item>
+        <item name="android:paddingVertical">14dp</item>
+        <item name="android:paddingHorizontal">32dp</item>
+        <item name="cornerRadius">28dp</item>
+        <item name="backgroundTint">@color/primary</item>
+        <item name="iconSize">24dp</item>
+        <item name="iconPadding">10dp</item>
+        <item name="rippleColor">#33FFFFFF</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="elevation">0dp</item>
     </style>
 
-    <!-- Medium Button for Overlay -->
-    <style name="Widget.SmartHelp.Button.Medium" parent="Widget.MaterialComponents.Button">
-        <item name="android:minHeight">56dp</item>
+    <!-- Secondary — outlined capsule -->
+    <style name="Widget.SmartHelp.Button.Secondary" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:minHeight">50dp</item>
         <item name="android:textSize">16sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="cornerRadius">12dp</item>
-        <item name="android:paddingHorizontal">16dp</item>
-    </style>
-
-    <!-- Outlined Medium Button -->
-    <style name="Widget.SmartHelp.Button.Medium.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
-        <item name="android:minHeight">56dp</item>
-        <item name="android:textSize">16sp</item>
-        <item name="android:textStyle">bold</item>
-        <item name="cornerRadius">12dp</item>
-        <item name="strokeWidth">2dp</item>
+        <item name="android:textColor">@color/primary</item>
+        <item name="android:paddingVertical">12dp</item>
+        <item name="android:paddingHorizontal">32dp</item>
+        <item name="cornerRadius">25dp</item>
+        <item name="strokeWidth">1.5dp</item>
         <item name="strokeColor">@color/primary</item>
     </style>
 
-    <!-- Microphone Button Style -->
-    <style name="Widget.SmartHelp.Button.Microphone" parent="Widget.MaterialComponents.Button">
-        <item name="android:minWidth">88dp</item>
-        <item name="android:minHeight">88dp</item>
-        <item name="cornerRadius">44dp</item>
-        <item name="backgroundTint">@color/mic_button</item>
-        <item name="iconSize">40dp</item>
-        <item name="iconGravity">textStart</item>
-        <item name="iconPadding">0dp</item>
+    <!-- Danger — red capsule -->
+    <style name="Widget.SmartHelp.Button.Danger" parent="Widget.MaterialComponents.Button">
+        <item name="android:minHeight">50dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/text_on_primary</item>
+        <item name="android:paddingVertical">12dp</item>
+        <item name="android:paddingHorizontal">32dp</item>
+        <item name="cornerRadius">25dp</item>
+        <item name="backgroundTint">@color/error</item>
     </style>
 
-    <!-- Large Text Style -->
+    <!-- Text / Ghost button -->
+    <style name="Widget.SmartHelp.Button.Text" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:minHeight">44dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/primary</item>
+        <item name="android:textStyle">normal</item>
+        <item name="rippleColor">@color/brand_purple_10</item>
+    </style>
+
+    <!-- Overlay action — compact -->
+    <style name="Widget.SmartHelp.Button.OverlayAction" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:minHeight">44dp</item>
+        <item name="android:minWidth">44dp</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:paddingHorizontal">12dp</item>
+        <item name="backgroundTint">@color/surface_variant</item>
+    </style>
+
+    <!-- Large CTA alias -->
+    <style name="Widget.SmartHelp.Button.Large" parent="Widget.SmartHelp.Button.Primary">
+        <item name="android:minHeight">60dp</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <!-- Medium button -->
+    <style name="Widget.SmartHelp.Button.Medium" parent="Widget.SmartHelp.Button.Primary">
+        <item name="android:minHeight">50dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="cornerRadius">25dp</item>
+    </style>
+
+    <!-- Microphone circular -->
+    <style name="Widget.SmartHelp.Button.Microphone" parent="Widget.MaterialComponents.Button">
+        <item name="android:minWidth">56dp</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="cornerRadius">28dp</item>
+        <item name="backgroundTint">@color/primary</item>
+        <item name="iconSize">28dp</item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconPadding">0dp</item>
+        <item name="android:paddingHorizontal">0dp</item>
+    </style>
+
+    <!-- ============================================================
+         CARD STYLES — iOS Grouped Style
+         ============================================================ -->
+    <style name="Widget.SmartHelp.Card" parent="Widget.MaterialComponents.CardView">
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="cardBackgroundColor">@color/surface_card</item>
+        <item name="contentPaddingLeft">0dp</item>
+        <item name="contentPaddingRight">0dp</item>
+        <item name="contentPaddingTop">0dp</item>
+        <item name="contentPaddingBottom">0dp</item>
+    </style>
+
+    <style name="Widget.SmartHelp.Card.Elevated" parent="Widget.SmartHelp.Card">
+        <item name="cardElevation">2dp</item>
+    </style>
+
+    <style name="Widget.SmartHelp.Card.Flat" parent="Widget.SmartHelp.Card">
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">0.5dp</item>
+        <item name="strokeColor">@color/divider</item>
+    </style>
+
+    <style name="Widget.SmartHelp.Card.Overlay" parent="Widget.SmartHelp.Card">
+        <item name="cardCornerRadius">20dp</item>
+        <item name="cardElevation">8dp</item>
+    </style>
+
+    <!-- ============================================================
+         TYPOGRAPHY — Clean iOS-Inspired
+         ============================================================ -->
+
+    <style name="TextAppearance.SmartHelp.Display" parent="TextAppearance.MaterialComponents.Headline3">
+        <item name="android:textSize">34sp</item>
+        <item name="android:textColor">@color/text_on_primary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.02</item>
+    </style>
+
     <style name="TextAppearance.SmartHelp.Headline" parent="TextAppearance.MaterialComponents.Headline4">
         <item name="android:textSize">28sp</item>
         <item name="android:textColor">@color/text_primary</item>
         <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.02</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+    </style>
+
+    <style name="TextAppearance.SmartHelp.Title" parent="TextAppearance.MaterialComponents.Headline5">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.01</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
     </style>
 
     <style name="TextAppearance.SmartHelp.Body" parent="TextAppearance.MaterialComponents.Body1">
-        <item name="android:textSize">18sp</item>
+        <item name="android:textSize">17sp</item>
         <item name="android:textColor">@color/text_secondary</item>
-        <item name="android:lineSpacingMultiplier">1.4</item>
+        <item name="android:lineSpacingMultiplier">1.5</item>
     </style>
 
-    <!-- Guidance Text in Overlay -->
     <style name="TextAppearance.SmartHelp.Guidance" parent="TextAppearance.MaterialComponents.Body1">
-        <item name="android:textSize">22sp</item>
+        <item name="android:textSize">18sp</item>
         <item name="android:textColor">@color/text_primary</item>
         <item name="android:lineSpacingMultiplier">1.4</item>
-    </style>
-
-    <!-- User Query Text -->
-    <style name="TextAppearance.SmartHelp.Query" parent="TextAppearance.MaterialComponents.Body2">
-        <item name="android:textSize">16sp</item>
-        <item name="android:textColor">@color/text_secondary</item>
-        <item name="android:textStyle">italic</item>
-    </style>
-
-    <!-- Listening Indicator -->
-    <style name="TextAppearance.SmartHelp.Listening" parent="TextAppearance.MaterialComponents.Body1">
-        <item name="android:textSize">18sp</item>
-        <item name="android:textColor">@color/listening_active</item>
         <item name="android:textStyle">bold</item>
     </style>
 
-    <!-- Input Field Style -->
-    <style name="Widget.SmartHelp.TextInput" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-        <item name="boxStrokeWidth">2dp</item>
-        <item name="boxStrokeColor">@color/primary</item>
-        <item name="boxCornerRadiusTopStart">12dp</item>
-        <item name="boxCornerRadiusTopEnd">12dp</item>
-        <item name="boxCornerRadiusBottomStart">12dp</item>
-        <item name="boxCornerRadiusBottomEnd">12dp</item>
+    <style name="TextAppearance.SmartHelp.Caption" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/text_hint</item>
+        <item name="android:lineSpacingMultiplier">1.3</item>
     </style>
+
+    <style name="TextAppearance.SmartHelp.Listening" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textSize">17sp</item>
+        <item name="android:textColor">@color/primary</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.SmartHelp.Query" parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/text_on_primary</item>
+        <item name="android:lineSpacingMultiplier">1.4</item>
+    </style>
+
+    <style name="TextAppearance.SmartHelp.SettingsLabel" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textSize">17sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+    </style>
+
+    <style name="TextAppearance.SmartHelp.SettingsSection" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <!-- ============================================================
+         TEXT INPUT — Rounded iOS Style
+         ============================================================ -->
+    <style name="Widget.SmartHelp.TextInput" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeWidth">1dp</item>
+        <item name="boxStrokeColor">@color/primary</item>
+        <item name="boxCornerRadiusTopStart">14dp</item>
+        <item name="boxCornerRadiusTopEnd">14dp</item>
+        <item name="boxCornerRadiusBottomStart">14dp</item>
+        <item name="boxCornerRadiusBottomEnd">14dp</item>
+        <item name="hintTextColor">@color/text_hint</item>
+    </style>
+
 </resources>
