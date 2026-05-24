@@ -1,1486 +1,523 @@
-# SmartHelp+ 重建总览
+# SmartHelp+ 项目总览
 
-> 基于当前代码仓库整理  
-> 核对日期：2026-04-23  
-> 目的：给后续“重新做这个 APP”时作为统一参考文档使用  
-> 原则：这份文档优先以当前代码为准，不完全沿用旧的 `README.md` / `SMARTHELP_OVERVIEW.md` / `UI_DESIGN_SPEC.md`
+> 核对日期：2026-05-25
+> 范围：当前 `SmartHelp` 代码仓库
+> 状态：已切换到 Android 原生客户端 + Python LiveKit Agent + Gemini 多阶段 AI 管线
+> 说明：旧版 Node.js / WebSocket server 已被 `server-python/` 替代，旧资料只保留在 `docs/archive/` 作历史参考
 
 ---
 
-## 1. 这个项目是什么
+## 1. 项目定位
 
-`SmartHelp+` 是一个给长者使用的 Android 智能手机辅助应用。
+SmartHelp+ 是一个面向长者的 Android 智能手机操作引导助手。
 
-它的核心能力不是“聊天”，而是：
+它不是聊天机器人，也不会替用户自动点击。它的核心目标是让用户每次只处理一个简单步骤：
 
-- 用户说出想做的事
-- APP 获取当前手机画面
-- AI 理解当前界面
-- 用很短的语音告诉用户下一步
-- 同时在正确位置画出高亮/箭头
-- 用户点一下后，再截图确认是否完成
-- 一步一步循环，直到任务完成
+1. 用户用语音或文字说出想完成的任务。
+2. App 捕获当前手机画面和可访问性控件信息。
+3. Python AI Agent 判断下一步应该做什么。
+4. App 用短语音提示用户，并在屏幕上高亮正确按钮或区域。
+5. 用户自己点击或输入。
+6. 系统再次截图和验证，继续下一步，直到任务完成或被安全规则拦截。
 
 一句话定义：
 
-**SmartHelp+ = 一个面向长者、语音优先、带视觉高亮的一步一步手机操作引导助手。**
+**SmartHelp+ = 面向长者、语音优先、带屏幕高亮的一步一步手机操作引导助手。**
 
 ---
 
-## 2. 产品目标
+## 2. 当前系统架构
 
-### 2.1 主要目标
+当前架构由三层组成：
 
-- 降低长者在使用智能手机时的紧张感、迷失感和操作压力
-- 让用户每次只关注“下一步”，而不是整个流程
-- 用“语音 + 屏幕高亮”代替复杂说明文字
-- 在用户做完动作后自动验证，避免误导
+```text
+Android App
+  - OverlayService
+  - ScreenCaptureService
+  - SmartHelpAccessibilityService
+  - LiveKit client
+        |
+        | LiveKit WebRTC
+        | audio track + video/screenshot + data channel JSON
+        v
+LiveKit Cloud
+        |
+        v
+Python LiveKit Agent
+  - STT
+  - Intent Agent
+  - Safety Gate
+  - ReAct Navigation Agent
+  - Task Executor
+  - Vision Grounding
+  - Accessibility Fast Path
+  - Gemini TTS
+```
 
-### 2.2 目标用户
-
-- 主要用户：年长 Android 用户
-- 次要场景：不熟悉某些 App 操作的新手用户
-
-### 2.3 适合的任务
-
-- 打开 App
-- 找按钮
-- 打电话
-- 发 WhatsApp / 发信息
-- 打开相机
-- 找设置项
-- 查看照片
-- 一般性的手机导航任务
-- 帮用户判断可疑讯息 / 链接 / QR code 是否像诈骗
-
-### 2.4 明确不适合或高风险任务
-
-- 银行转账
-- 输入 OTP / TAC / PIN / 密码
-- 付款确认
-- 远程控制 App 安装
-- 陌生链接 / 陌生 QR code 的直接操作
-- 任何必须高度谨慎的金钱交易流程
+旧架构中的 `server/` Node.js backend、Express、`ws` WebSocket route 和 Node Gemini service 已经删除。现在的后端运行时在 `server-python/`。
 
 ---
 
-## 3. 当前技术栈
+## 3. 技术栈
 
-| 层 | 当前实现 |
+| 层级 | 当前技术 |
 |---|---|
-| Android App | Java, Android SDK 26-34 |
-| Android UI | Material Components + XML Layout |
-| Android 网络 | OkHttp WebSocket |
-| Android 设备能力 | MediaProjection, AccessibilityService, SpeechRecognizer, Overlay Window |
-| Backend | Node.js 18+, Express, `ws` |
-| 实时语音/截图引导 | Gemini Live |
-| 任务规划 | Gemini Planner |
-| Prompt 测试 | Promptfoo |
-| 单元测试 | `node:test` |
-| 数据存储 | 无数据库，主要是 SharedPreferences + 内存状态 |
+| Android 客户端 | Java, Android SDK, Material Components |
+| Android 能力 | MediaProjection, AccessibilityService, Overlay Window, SpeechRecognizer fallback, TextToSpeech fallback |
+| 传输 | LiveKit WebRTC audio track + data channel JSON |
+| Token 服务 | Python HTTP server, 默认端口 `8765` |
+| AI Runtime | Python LiveKit Agent |
+| STT | Google Cloud Speech-to-Text 为主，Gemini STT 作为 fallback |
+| 意图识别 | Gemini `gemini-2.5-flash-lite`，可通过环境变量覆盖 |
+| ReAct 导航 | Gemini `gemini-2.5-flash-lite`，逐步决策 |
+| 视觉定位 | Gemini Vision，默认 `gemini-3-flash-preview` |
+| 语音输出 | Gemini TTS 通过 LiveKit audio track，Android local TTS 作为 fallback |
+| 本地状态 | Android SharedPreferences + 内存 session state |
 
-### 3.1 代码里实际使用的 AI 模型
+常用模型环境变量：
 
-- 实时引导模型默认值：
-  - `models/gemini-2.5-flash-native-audio-preview-12-2025`
-- 任务规划模型：
-  - 首选 `gemini-3-flash-preview`
-  - 回退 `gemini-2.5-flash-lite`（与 IntentAgent / NavigationReactAgent 同款）
-
-注意：旧文档里还有 `gemini-2.5-flash` 的描述，但**以当前代码为准**。
+- `GEMINI_INTENT_MODEL`
+- `GEMINI_REACT_MODEL`
+- `GEMINI_VISION_MODEL`
+- `GEMINI_VISION_VERIFY_MODEL`
+- `GEMINI_TTS_MODEL`
+- `GEMINI_TTS_FALLBACK_MODEL`
 
 ---
 
-## 4. 项目目录总览
+## 4. 代码目录
 
 ```text
 SmartHelp/
-├─ android/                         # Android 原生 App
-│  └─ app/src/main/
-│     ├─ java/com/smarthelp/app/    # Activity / Service / UI 控制逻辑
-│     ├─ res/layout/                # 页面与 overlay 布局
-│     ├─ res/drawable/              # 背景、按钮、气泡、渐变、图标
-│     ├─ res/values/                # colors / strings / themes
-│     └─ AndroidManifest.xml
-├─ server/                          # Node.js backend
-│  ├─ src/
-│  │  ├─ core/                      # 新架构核心：controller / state machine / executor / safety
-│  │  ├─ agents/                    # Gemini Live、ReAct navigation、兼容层
-│  │  └─ prompts/                   # 模块化 prompts
-│  ├─ promptfoo/                    # Prompt 测试
-│  ├─ test/                         # 单元测试 + integration replay
-│  └─ docs/
-├─ README.md
-├─ design.md
-├─ PROJECT_OVERVIEW.md
-├─ SMARTHELP_OVERVIEW.md
-└─ UI_DESIGN_SPEC.md
+├── android/                         Android 原生 App
+│   └── app/src/main/java/com/smarthelp/app/
+│       ├── MainActivity.java
+│       ├── SplashActivity.java
+│       ├── SettingsActivity.java
+│       ├── OverlayService.java
+│       ├── ScreenCaptureService.java
+│       ├── SmartHelpAccessibilityService.java
+│       ├── HighlightOverlayView.java
+│       ├── AppPrefs.java
+│       ├── PrivacySafety.java
+│       ├── network/
+│       │   ├── ServerConnection.java
+│       │   └── MessageProtocol.java
+│       ├── overlay/
+│       │   └── HighlightRenderer.java
+│       └── session/
+│           └── TaskSessionLocal.java
+│
+├── server-python/                   Python LiveKit Agent
+│   ├── agent.py
+│   ├── token_server.py
+│   ├── generate_token.py
+│   ├── intent_agent.py
+│   ├── intent_safety_agent.py
+│   ├── navigation_react_agent.py
+│   ├── task_executor.py
+│   ├── task_state_machine.py
+│   ├── vision_grounding_tool.py
+│   ├── accessibility_fast_path.py
+│   ├── safety_gate.py
+│   ├── voice_synthesizer.py
+│   ├── prompt_registry.py
+│   ├── prompts/
+│   └── tests/
+│
+├── docs/
+│   ├── architecture/
+│   ├── testing/
+│   ├── design.md
+│   ├── UI_DESIGN_SPEC.md
+│   └── archive/
+│
+├── branding/
+├── README.md
+├── overview.md
+├── start-all.bat
+├── start-all.ps1
+├── stop-all.bat
+└── _run-agent.bat
 ```
 
 ---
 
-## 5. 当前真实架构
+## 5. Android 端职责
 
-## 5.1 Android 端整体流程
+Android 端主要负责用户体验、权限、屏幕捕获和显示引导结果。
 
-```text
-SplashActivity
-  -> MainActivity
-  -> Onboarding / Privacy Notice
-  -> 权限申请
-  -> 启动 OverlayService + ScreenCaptureService
-  -> 用户切到别的 App 操作
-  -> OverlayService 负责语音、截图请求、高亮、重试、完成弹层
-  -> 与 server WebSocket 通讯
-```
+### 5.1 `MainActivity.java`
 
-## 5.2 Server 端整体流程
+主界面负责：
 
-```text
-Android WebSocket
-  -> server/src/index.js
-  -> SessionController（默认主控制器）
-  -> TaskStateMachine（状态机）
-  -> TaskExecutor（执行器）
-  -> SafetyGate（安全判断）
-  -> NavigationReactAgent（决定下一步动作）
-  -> GeminiLiveAgent（发送截图给 Gemini Live）
-  -> 返回 audio / text / highlight / complete
-```
+- 展示 SmartHelp+ 入口和当前状态。
+- 引导用户完成麦克风、悬浮窗、无障碍服务、屏幕捕获权限。
+- 启动 `OverlayService` 和 `ScreenCaptureService`。
+- 提供设置入口和基本状态显示。
 
-## 5.3 非常重要的事实
+### 5.2 `OverlayService.java`
 
-- 当前默认主流程已经不是老式 `OrchestratorAgent`
-- 当前默认运行的是：
-  - `SessionController`
-  - `TaskStateMachine`
-  - `TaskExecutor`
-- `server/src/agents/orchestratorAgent.js` 现在只剩兼容 shim 意义
-- 如果环境变量 `USE_NEW_ARCH=false` 才会走兼容模式
-
-这意味着你重做时，**要以新架构为主，不要再把旧的 orchestrator 当作核心设计。**
-
----
-
-## 6. Android 端模块说明
-
-## 6.1 启动与首页
-
-### `SplashActivity.java`
-
-作用：
-
-- 启动页
-- 播放 logo / 标题淡入动画
-- 约 `900ms` 后跳到 `MainActivity`
-
-对应布局：
-
-- `android/app/src/main/res/layout/activity_splash.xml`
-
-当前视觉方向：
-
-- 浅蓝渐变背景
-- 中央 logo
-- 同心圆装饰
-- 底部细 loading bar
-
-### `MainActivity.java`
-
-作用：
-
-- 首页
-- onboarding 入口
-- server 连接状态检测
-- 权限申请总入口
-- 启动 / 停止服务
-- 最近任务入口
-- 设置页入口
-
-首页核心元素：
-
-- 顶部设置按钮
-- 连接状态 pill
-- 中央大圆形 mic orb
-- 下方主 CTA 文案
-- 最近任务列表
-
-当前交互逻辑：
-
-- 如果服务未运行：点击 orb -> 申请权限 -> 启动服务
-- 如果服务已运行：点击 orb -> 停止服务
-- 最近任务可以直接再次触发
-- 如果 home 上先点了某个任务，query 会存到 `AppPrefs`，等 overlay ready 后自动发出
-
----
-
-## 6.2 偏好与本地状态
-
-### `AppPrefs.java`
-
-负责存储：
-
-- 语言
-- server 地址
-- text size
-- voice speed
-- privacy consent
-- sensitive protection 开关
-- pending query
-- recent tasks
-- recent server addresses
-- onboarding shown
-- quick actions
-- guidance voice 开关
-- action sounds 开关
-
-当前默认值里最值得记住的内容：
-
-- 默认 server：`192.168.0.154:3000`
-- 最近任务最多保留：`3`
-- 最近 server 地址最多保留：`4`
-
-默认 quick actions：
-
-| 显示文案 | 实际命令 |
-|---|---|
-| Make a call | `Use the phone dialer to call my son, not WhatsApp` |
-| Send WhatsApp | `Send a WhatsApp message to my daughter` |
-| Open Camera | `Open the camera` |
-| Check scam | `Help me check whether this message, link, or QR code is a scam` |
-
----
-
-## 6.3 设置页
-
-### `SettingsActivity.java`
-
-作用：
-
-- 配置 server 地址
-- 改语言
-- 调整文字大小
-- 控制语音与提示音
-- 查看 privacy & safety
-- 开关 sensitive protection
-- 编辑 quick actions
-- 查看帮助
-- 清除最近任务
-- 重置 quick actions
-
-页面结构上分成以下 section：
-
-1. Language
-2. Notifications & Sound
-3. Text Size
-4. Quick Actions
-5. Permissions
-6. Privacy & Safety
-7. Advanced / Help & Tutorial
-8. Maintenance
-9. Server Connection
-10. About
-
-注意：
-
-- 设置页视觉上还是沿用很多 `bg_info_card_purple` 命名
-- 但这些资源实际已经是蓝色系，不是真的紫色
-- 设置页功能很多，是当前功能 inventory 最完整的地方
-- 但视觉上还有旧设计残留，后续重做时建议简化
-
----
-
-## 6.4 Overlay 运行核心
-
-### `OverlayService.java`
-
-这是 Android 端最重要、也最重的类。
-
-它当前负责：
-
-- 创建底部 guidance overlay
-- 创建 highlight overlay
-- 创建 floating ball overlay
-- 创建 close target overlay
-- 创建 chat overlay
-- 连接 server
-- 语音输入
-- 处理 server 返回的 text / audio / highlight / taskComplete / requestScreenshot
-- 任务中的 step progress
-- 重播语音
-- ball mode 与 input mode 切换
-- 错误状态
-- reconnect 状态
-- 敏感页面暂停
-- task complete 弹层
-- chat history
-- quick actions
-- 点击检测后的 verify 逻辑
-
-### 当前 UI 状态枚举
-
-`OverlayUiState` 大致包括：
-
-- `IDLE`
-- `LISTENING`
-- `ANALYZING`
-- `COMPLETED`
-- `ERROR`
-
-### Overlay 目前包含的几个子界面
-
-1. `overlay_guidance.xml`
-   - 主 bottom panel
-   - guidance 卡片
-   - error 卡片
-   - quick actions
-   - mic button
-   - listening / thinking 状态
-
-2. `overlay_ball.xml`
-   - 悬浮球模式
-   - 语音气泡
-   - 详情卡片
-   - Done / Show Again / Stop / Expand 按钮
-
-3. `overlay_chat.xml`
-   - 聊天记录面板
-   - user bubble / AI bubble
-
-4. `dialog_task_complete.xml`
-   - 完成后底部弹层
-   - Ask Again / Go Home
-
-### 设计层面最重要的结论
-
-这个项目真正的“产品体验核心”其实就是 `OverlayService`。
-
-后面你重做 APP 时，最需要保留的不是某个旧布局文件，而是下面这些能力：
-
-- bottom guidance panel
-- 一步一步的高亮引导
-- 必要时切换成 ball mode
-- step 完成后自动 verify
-- 失败后 retry / help
-- 敏感页面自动暂停
-- 任务完成后给用户明确结束反馈
-
----
-
-## 6.5 截图与验证
-
-### `ScreenCaptureService.java`
-
-作用：
-
-- 使用 `MediaProjection` 截图
-- 只在需要时 capture
-- 截图前广播隐藏 overlay
-- 截图后恢复 overlay
-- 把截图编码成 base64 JPEG
-- 计算轻量 hash 用于页面是否变化判断
-
-关键信息：
-
-- 通过广播 `com.smarthelp.ANALYZE_REQUEST` 触发截图
-- 截图结果存在静态共享变量：
-  - `latestScreenshotBase64`
-  - `latestScreenshotHash`
-
-这是一种实用但不算优雅的实现，优点是快，缺点是服务间耦合较强。
-
----
-
-## 6.6 点击检测与敏感页面检测
-
-### `SmartHelpAccessibilityService.java`
-
-负责监听：
-
-- `TYPE_VIEW_CLICKED`
-- `TYPE_WINDOW_STATE_CHANGED`
-
-然后广播给 APP 内部其他模块。
-
-### `InputDetector.java`
-
-负责把 Accessibility 广播包装成统一事件：
-
-- `USER_INTERACTION`
-- `WINDOW_CHANGED`
-
-### `SafetyMonitor.java`
-
-负责根据前台 package name 判断当前是不是敏感页面。
-
-敏感页面关键词包含：
-
-- bank
-- payment
-- wallet
-- tng
-- authenticator
-- token
-- maybank / cimb / rhb / publicbank 等
-
----
-
-## 6.7 高亮绘制
-
-### `HighlightRenderer.java`
-
-负责真正把高亮 view 挂到系统 overlay 上。
-
-### `HighlightOverlayView.java`
-
-负责绘制：
-
-- 高亮圆圈
-- 外圈 pulse
-- 指向箭头
-
-### 当前真实高亮颜色
-
-虽然 APP 品牌色已经是蓝色，但高亮绘制目前仍然是**橙色**：
-
-- 边框：`#FF6B00`
-- 填充：`#55FF6B00`
-
-这是一个非常关键的设计事实：
-
-- **应用 chrome 是蓝色**
-- **目标高亮是橙色**
-
-这未必是坏事，因为对长者来说橙色比蓝色更容易一眼看见。  
-如果你重做，建议你明确决定：
-
-1. 要么继续保留橙色高亮，作为“动作提示色”
-2. 要么统一成蓝色，但要确保可视性不下降
-
-我的建议：**保留橙色高亮更合理。**
-
----
-
-## 6.8 语音输入现状
-
-当前语音链路并不完全统一，这是后续重做时必须注意的地方。
-
-### 现有路径
-
-1. `OverlayService` 里直接使用本地 `SpeechRecognizer`
-2. 另外又存在 `OverlayVoiceCaptureActivity.java`
-3. 没有麦克风权限时会拉起 `MicPermissionActivity.java`
-4. `GeminiLiveClient` 还支持把 PCM 音频 chunk 通过 WebSocket 发给 server
-
-这说明：
-
-- 当前系统里同时存在“本地语音识别”和“流式音频发送”的设计
-- 实现上偏复杂
-- 是一个明显的 design debt
-
-### 重做建议
-
-后续重做时，应统一语音输入方案，只保留一种主路径：
-
-- 要么完全本地识别后发文字
-- 要么完全流式语音上传 server
-- 不建议长期同时保留两套交互入口
-
----
-
-## 7. Server 端模块说明
-
-## 7.1 入口
-
-### `server/src/index.js`
-
-提供两个主要入口：
-
-- `GET /health`
-- `WS /live`
-
-每个 Android 连接会创建一个 session controller。
-
----
-
-## 7.2 默认控制器
-
-### `server/src/core/SessionController.js`
-
-这是当前 server 端真正的主控制器。
+这是 Android 端最核心的运行时控制器。
 
 它负责：
 
-- 接受 Android 消息
-- 把 legacy 消息协议正规化
-- 持有当前 session state
-- 连接 Gemini Live
-- 调度状态机与执行器
-- reconnect 处理
-- 心跳检测
-- 和 Android 保持兼容协议翻译
+- 创建悬浮球、侧边栏、聊天面板、任务完成面板。
+- 与 `ServerConnection` 建立 LiveKit session。
+- 控制麦克风开始和停止。
+- 发送用户文本、语音状态、截图请求和 action event。
+- 接收 Python Agent 的 guidance / highlight / completion / safety message。
+- 调用 `HighlightOverlayView` 在屏幕上画高亮框、箭头和提示。
+- 使用本地 TTS 作为快速提示或 Gemini TTS fallback。
+- 在用户操作后安排下一次验证。
 
-### 关键点
+设计原则：
 
-- 内部仍兼容老协议
-- 会把新输出翻译成 Android 现有能读懂的 legacy message
-- 这是为什么 Android 端还是在收 `ready` / `highlight` / `taskComplete` 这类消息
+- App 不替用户点击。
+- 每次只给一个短步骤。
+- 高亮和语音必须同步表达同一个目标。
+- 如果进入敏感场景，优先暂停并显示安全提醒。
 
----
+### 5.3 `ScreenCaptureService.java`
 
-## 7.3 状态机
+负责 MediaProjection 屏幕捕获：
 
-### `server/src/core/TaskStateMachine.js`
+- 接收系统 screen capture permission。
+- 抓取当前屏幕图像。
+- 附带屏幕尺寸、方向、截图时间等上下文。
+- 读取最新 Accessibility snapshot。
+- 把截图和上下文交给 LiveKit data channel / agent pipeline。
 
-当前 server 的任务流程已经被显式状态机化。
+### 5.4 `SmartHelpAccessibilityService.java`
 
-状态包括：
+负责收集可访问性树和用户动作事件：
 
-| 状态 | 含义 |
-|---|---|
-| `IDLE` | 没有任务 |
-| `INTAKE` | 收到新目标，准备开始 |
-| `SAFETY_CHECK` | 先做安全检查 |
-| `PLANNING` | 生成步骤 |
-| `CLARIFYING` | 缺信息，需要追问用户 |
-| `GUIDING` | 准备引导当前步骤 |
-| `AWAITING_ACTION` | 已告诉用户下一步，等待用户动作 |
-| `VERIFYING` | 用户完成动作后，验证画面 |
-| `RETRYING` | 验证失败后的重引导 |
-| `HELPING` | 超时或找不到时进入帮助模式 |
-| `STUCK` | 多次失败后卡住 |
-| `COMPLETED` | 完成 |
-| `FAILED` | 失败 |
+- 提取当前窗口里的可见控件文本、bounds、clickable 状态。
+- 根据目标文本快速寻找候选控件。
+- 向 `OverlayService` 通知用户点击、输入、滚动、窗口切换等动作。
+- 检测敏感 package 或敏感界面，配合 `PrivacySafety` 暂停风险流程。
 
-这是当前项目里非常重要的一部分。  
-你后续重做时，**建议完整保留“显式状态机”这条路线**。
+Accessibility 不用于自动操作，只用于：
 
----
+- 更准确地理解屏幕。
+- 更快地定位按钮。
+- 判断用户是否已经执行了动作。
 
-## 7.4 执行器
+### 5.5 `ServerConnection.java`
 
-### `server/src/core/TaskExecutor.js`
+Android 端 LiveKit 连接层：
 
-负责把状态机的当前状态转成实际动作：
+- 从 `token_server.py` 获取 LiveKit token。
+- 连接 LiveKit Cloud。
+- 发布麦克风音频和屏幕相关消息。
+- 接收 Python Agent 通过 data channel 返回的结构化 JSON。
+- 处理连接失败、重连、emulator token endpoint fallback。
 
-- safety check
-- 生成 plan
-- 请求 screenshot
-- 调用 Gemini Live 看图
-- 处理 verify pass / fail
-- 输出 guidance / chat / completed / stuck
+### 5.6 `MessageProtocol.java`
 
-它相当于“工作流执行层”。
+定义 Android 与 Python Agent 之间的 JSON message 格式。
 
----
+典型消息包括：
 
-## 7.5 安全层
-
-### `server/src/core/SafetyGate.js`
-
-这是 server 端的硬性安全判断层。
-
-它会识别：
-
-- 冒充警察 / 银行 / 政府
-- 所谓 “safe account”
-- 远程控制 App
-- 分享 OTP / PIN / password
-- 给陌生人转账
-- 可疑链接
-
-同时也会对下面这些动作做二次确认：
-
-- 转账
-- 扫 QR
-- 安装 App
-- 删除
-- 改密码 / 新设备绑定
-
-支持语言：
-
-- `zh`
-- `en`
-- `ms`
-
-这说明 server 的安全层对 Malay 是有支持的。
+- 用户文本或语音结束事件。
+- 截图请求和截图结果。
+- guidance 文本。
+- highlight 坐标。
+- task completed。
+- ask user / retry / help request。
+- safety warning。
 
 ---
 
-## 7.6 任务规划器
+## 6. Python Agent 职责
 
-### `server/src/agents/taskAgent.js`
+Python 端是当前系统的 AI 大脑。
 
-负责把用户目标拆成结构化步骤。
+### 6.1 `agent.py`
 
-每一步通常包含：
+LiveKit Agent 入口，负责：
 
-- `instruction`
-- `action`
-- `target`
-- `matchHints`
-- `avoidHints`
-- `expectedResult`
+- 连接 LiveKit Room。
+- 接收 Android 的音频、截图和 data channel message。
+- 管理 `TaskExecutor`。
+- 调用 STT、vision、TTS 等模块。
+- 将字幕、语音、highlight 和状态消息发回 Android。
 
-### 当前规划策略不是纯模型
+它替代旧版 Node.js server。
 
-它现在实际上是三层：
+### 6.2 `token_server.py` / `generate_token.py`
 
-1. heuristic plan
-   - 对某些典型 WhatsApp / call 场景直接写死逻辑
-2. model-generated plan
-   - 用 Gemini 生成 JSON 步骤
-3. fallback plan
-   - 如果失败，就退回 `ask_user`
+负责发放短期 LiveKit token：
 
-### 重要结论
+- Android 默认请求 `http://127.0.0.1:8765/token`。
+- Emulator 会 fallback 到 `http://10.0.2.2:8765/token`。
+- token 使用 `LIVEKIT_API_KEY` 和 `LIVEKIT_API_SECRET` 生成。
 
-当前导航已经不是旧 planner 预生成完整步骤，而是：
+### 6.3 `intent_agent.py`
 
-**ReAct next-action decision + vision grounding + bounded retry**
+负责理解用户想做什么：
 
-旧 TaskAgent planner 已删除；失败时进入 STUCK/询问用户，不再切回旧 planner。
+- 判断任务目标。
+- 识别目标 App 或操作类型。
+- 判断语言。
+- 输出给后续安全和导航阶段使用的结构化 intent。
 
----
+### 6.4 `intent_safety_agent.py` 和 `safety_gate.py`
 
-## 7.7 Gemini Live 适配层
+负责风险拦截：
 
-### `server/src/agents/geminiLiveAgent.js`
+- OTP / TAC / PIN。
+- 银行转账或付款确认。
+- 可疑链接、二维码、未知安装包。
+- 远程控制或高风险设置。
+- 用户明显在要求安全检查时，优先回答安全判断。
 
-作用：
+高风险任务不会进入导航高亮流程。
 
-- 连到 Gemini Live WebSocket
-- 发 setup message
-- 发图片 + context
-- 发音频 chunk
-- 收到 audio / transcription / tool call
+### 6.5 `navigation_react_agent.py`
 
-### `server/src/agents/liveGuidanceConfig.js`
+负责逐步导航决策。
 
-定义了：
+它不是一次性生成完整长计划，而是每次根据当前状态做一次 ReAct 式判断：
 
-- Live session setup
-- tool schema
-- voice 配置
-- 当前 voice name：`Aoede`
+- 当前用户目标是什么。
+- 当前屏幕显示什么。
+- Accessibility snapshot 里有哪些候选控件。
+- 上一步是否成功。
+- 是否需要重试、改用视觉定位、或向用户询问。
 
-唯一核心工具是：
+输出是下一步动作，例如：
 
-- `highlightElement(x, y, completed, blockerDetected, blockerReason)`
+- 让用户点击某个按钮。
+- 让用户输入文字。
+- 告诉用户当前找不到目标。
+- 判断任务已经完成。
 
-这也是整个视觉引导闭环的核心协议。
+### 6.6 `task_state_machine.py`
 
----
-
-## 7.8 Prompt 体系
-
-当前 prompt 已经模块化，不再是单一大 prompt。
-
-目录：
+定义任务生命周期：
 
 ```text
-server/src/prompts/
-├─ chat/
-├─ guide/
-├─ navigation/
-├─ contextBuilder.js
-└─ index.js
+IDLE
+  -> INTAKE
+  -> GUIDING
+  -> AWAITING_ACTION
+  -> VERIFYING
+  -> RETRYING
+  -> HELPING
+  -> COMPLETED / BLOCKED / ERROR
 ```
 
-### 当前 prompt 设计要点
+状态机让系统不会变成随意聊天，而是保持在明确的任务闭环里。
 
-- `navigation` 负责基于当前屏幕决定一个下一步动作
-- `guide` 负责看截图并决定说什么、指哪里
-- `chat` 负责追问缺失信息
-- `contextBuilder` 负责把 GOAL / STEP / TARGET / EXPECTED_RESULT 拼成上下文块
+### 6.7 `task_executor.py`
 
-### 当前 guide prompt 的核心原则
+任务执行核心：
 
-- 语气温和、像家人一样
-- 一次只说一句话
-- 一次只引导一个动作
-- 高置信度才给准确坐标
-- 低置信度则用 `x=50, y=50` 并让用户滚动 / 滑动
-- verify 时如果确认完成，`completed=true`
+- 调用 intent safety。
+- 调用 ReAct navigation。
+- 选择 Accessibility fast path 或 vision grounding。
+- 决定发送给 Android 的文本、highlight、retry、completion。
+- 控制去重，避免重复 TTS 和重复高亮。
+- 在用户动作后要求下一次截图验证。
 
----
+### 6.8 `vision_grounding_tool.py`
 
-## 7.9 Metrics / 测试 / 验证
+负责视觉定位和验证：
 
-### Metrics
+- 输入当前 screenshot、目标描述、上下文。
+- 调用 Gemini Vision。
+- 输出目标是否存在、目标区域、坐标、置信度、屏幕摘要。
+- 当 Accessibility 无法可靠定位时提供 pixel-level grounding。
 
-`server/src/core/TaskMetricsLogger.js`
+### 6.9 `accessibility_fast_path.py`
 
-会记录：
+负责纯本地匹配：
 
-- 状态切换
-- task summary
-- retry 次数
-- help 次数
-- duration
+- 根据控件文本、content description、bounds、clickable 信息寻找目标。
+- 如果已经能确定目标按钮，就跳过 Gemini Vision。
+- 降低延迟和 API 调用成本。
 
-默认日志文件：
+### 6.10 `voice_synthesizer.py`
 
-- `logs/task-metrics.jsonl`
+负责 Gemini TTS：
 
-### 自动化测试
-
-当前已存在：
-
-- unit tests
-- prompt registry tests
-- context builder tests
-- safety gate tests
-- state machine tests
-- task executor tests
-- session controller tests
-- integration replay tests
-
-### Promptfoo
-
-当前 `server/promptfoo/` 已经支持：
-
-- navigation-react
-- guide-navigate
-- guide-verify
-- guide-retry
-- guide-help
-- chat
-
-### GitHub Actions
-
-`.github/workflows/test.yml` 当前会跑：
-
-- server unit tests
-- prompt tests（有 `GEMINI_API_KEY` 时）
-- integration replay（schedule / manual）
-
-这说明这个项目虽然是 FYP，但 backend 这部分已经开始有比较像正式工程的验证体系。
+- 将短提示合成为 PCM。
+- 通过 LiveKit audio track 播放给 Android。
+- 支持中文、英文、马来文 voice 配置。
+- 失败时让 Android 使用 local TTS fallback。
 
 ---
 
-## 8. 当前消息协议
+## 7. 一次完整任务流程
 
-## 8.1 Android -> Server
+以“帮我打开相机”为例：
 
-当前 Android 发送的主要 legacy message：
+1. 用户点击悬浮球并讲话。
+2. Android 打开 LiveKit 麦克风 audio track。
+3. Python Agent 接收音频并转文字。
+4. `IntentAgent` 判断目标是打开 Camera。
+5. `IntentSafetyAgent` 确认不是高风险任务。
+6. Android 截取当前屏幕并发送截图 + Accessibility snapshot。
+7. `NavigationReactAgent` 判断下一步。
+8. `AccessibilityFastPath` 先尝试从控件树找 Camera。
+9. 如果找不到，再调用 `VisionGroundingTool` 看图定位。
+10. Python Agent 发送 guidance：例如“Tap the Camera icon.”
+11. Android 显示高亮，并用语音说出同一句短提示。
+12. 用户自己点击。
+13. Accessibility event 触发，Android 延迟请求验证截图。
+14. Agent 判断是否进入 Camera。
+15. 如果成功，发送 completed；如果失败，发送 retry 或新的下一步。
 
-| type | 说明 |
-|---|---|
-| `text` | 用户文字请求 |
-| `image` | base64 screenshot |
-| `audio` | base64 PCM 音频 |
+---
 
-额外字段：
+## 8. 安全边界
 
-- `query`
-- `verify`
-- `width`
-- `height`
+SmartHelp+ 的安全原则：
 
-## 8.2 Server 内部正规化后的消息
+- 不自动点击。
+- 不替用户输入密码、OTP、TAC、PIN。
+- 不引导银行转账、付款确认、未知安装包安装。
+- 不鼓励点击可疑链接或扫描未知二维码。
+- 进入敏感 App 或敏感界面时，优先暂停并显示安全提醒。
 
-`SessionController` 会把上面的 legacy message 规范成：
+Android 端有 `PrivacySafety.java`，Python 端有 `SafetyGate` 和 `IntentSafetyAgent`。两边都做防护，不只依赖一个模型判断。
 
-- `user_input`
-- `screenshot`
-- `audio_chunk`
-- `user_action`
-- `help_request`
-- `cancel`
-- `sensitive_screen`
-- `ping`
+---
 
-## 8.3 Server -> Android
+## 9. 运行方式
 
-Android 当前实际在收的 legacy 协议：
+### 9.1 环境变量
 
-| type | 说明 |
-|---|---|
-| `connecting` | Gemini / server 正在连接 |
-| `ready` | session ready |
-| `text` | AI 文本提示 |
-| `audio` | 语音音频 |
-| `highlight` | 高亮坐标 |
-| `transcription` | 语音识别结果 |
-| `taskComplete` | 任务完成 |
-| `requestScreenshot` | 请求重新截图 |
-| `error` | 错误消息 |
+`server-python/.env` 需要包含：
 
-其中 `highlight` 结构尤其重要：
+```env
+LIVEKIT_URL=...
+LIVEKIT_API_KEY=...
+LIVEKIT_API_SECRET=...
+GOOGLE_API_KEY=...
+GOOGLE_APPLICATION_CREDENTIALS=...
+```
 
-```json
-{
-  "type": "highlight",
-  "x": 42,
-  "y": 63,
-  "completed": false,
-  "blockerDetected": false,
-  "blockerReason": null
-}
+`.env` 已被 `.gitignore` 忽略，不应该提交到 GitHub。
+
+### 9.2 安装 Python 依赖
+
+```powershell
+cd server-python
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+### 9.3 启动
+
+推荐使用：
+
+```powershell
+.\start-all.bat
+```
+
+它会启动：
+
+- token server。
+- Python LiveKit Agent。
+- agent auto-restart wrapper。
+- ADB reverse for token endpoint。
+
+停止：
+
+```powershell
+.\stop-all.bat
 ```
 
 ---
 
-## 9. 真实的产品流程
+## 10. 测试
 
-```text
-1. 用户打开 SmartHelp+
-2. 进入 Splash
-3. 进入 MainActivity
-4. 首次进入会看到 onboarding
-5. 点击首页大 orb
-6. 依次申请：
-   - Notification
-   - Microphone
-   - Overlay
-   - Screen Capture
-   - Accessibility（可选但推荐）
-7. 启动 OverlayService + ScreenCaptureService
-8. 用户切到目标 App
-9. 通过 mic 说出目标
-10. Android 把 query / screenshot 发到 server
-11. Server 先做 safety check
-12. Server 生成 plan
-13. Gemini Live 根据 screenshot + context 给出一句话 + highlight
-14. Android 播放语音并显示高亮
-15. 用户点击后再次截图 verify
-16. 成功则下一步，失败则 retry/help
-17. 最终 task complete
-18. 弹出完成卡片，可继续问或回首页
+Python 测试：
+
+```powershell
+cd server-python
+.\venv\Scripts\python.exe -m pytest
 ```
 
----
+Android 测试位于：
 
-## 10. UI / UX 设计总则
+- `android/app/src/test/`
+- `android/app/src/androidTest/`
 
-这一部分是你后续重做时最应该当成“设计基线”的内容。
+项目测试计划和模板位于：
 
-## 10.1 设计关键词
+- `docs/testing/TESTING_PLAN.md`
+- `docs/testing/TECHNICAL_EDGE_CASE_TEST_TEMPLATE.md`
+- `docs/testing/ELDERLY_USER_TEST_CASES_TEMPLATE.md`
+- `docs/testing/BETA_TESTING_SUMMARY_TEMPLATE.md`
 
-- calm
-- soft
-- senior-friendly
-- voice-first
-- spacious
-- rounded
-- trustworthy
-- low cognitive load
+运行时调试输出、截图证据和临时测试产物不应提交：
 
-### 不应该做成什么样
-
-- 不要做成聊天机器人首页
-- 不要把 overlay 做成复杂控制台
-- 不要让用户同一时间面对很多按钮
-- 不要让页面充满强对比、霓虹、暗黑、赛博风
-- 不要把引导写成长段文字
+- `server-python/debug/`
+- `android/test-artifacts/`
+- `docs/testing/evidence/`
 
 ---
 
-## 10.2 推荐的“标准品牌方向”
+## 11. 当前重点文件
 
-当前最值得保留的视觉方向来自：
+如果要继续开发，优先看这些文件：
 
-- `colors.xml`
-- `activity_main.xml`
-- `activity_splash.xml`
-- `design.md`
-
-可以总结成一句：
-
-**主品牌是温和蓝色，信息层是白色圆角卡片，重点动作是大圆形或 pill，overlay 尽量简洁。**
-
----
-
-## 10.3 颜色系统
-
-## 10.3.1 建议作为“主规范”的颜色
-
-| Token | Hex | 用途 |
-|---|---|---|
-| Primary | `#1565C0` | 主按钮、强调、品牌蓝 |
-| Primary Dark | `#0D47A1` | 深蓝、按下态、品牌渐变 |
-| Primary Light | `#42A5F5` | 浅蓝装饰、ring、次强调 |
-| Accent | `#00ACC1` | 次强调、辅助信息 |
-| Navy Primary | `#0A2342` | 大标题、深色文案、hero 内深色内容 |
-| Background | `#E3F2FD` | 主背景底色 |
-| Surface | `#FFFFFF` | 白色内容面板 |
-| Surface Variant | `#E3F4FF` | 轻量卡片背景 |
-| Text Primary | `#1C1B1F` | 主正文 |
-| Text Secondary | `#6B7280` | 次正文 |
-| Text Hint | `#9CA3AF` | hint |
-| Success | `#10B981` | 完成 / 成功 |
-| Warning | `#F59E0B` | 警告 |
-| Error | `#EF4444` | 错误 |
-
-## 10.3.2 重要提醒：命名和真实颜色不一致
-
-当前代码里有很多旧命名，比如：
-
-- `brand_purple`
-- `brand_purple_dark`
-- `bg_info_card_purple`
-
-但这些资源的**真实颜色已经是蓝色系**。  
-重做时不要被名字误导，应该看实际 hex。
-
----
-
-## 10.4 关键渐变与组件背景
-
-这些是当前代码里最有代表性的视觉材料。
-
-### Hero 背景
-
-- 文件：`bg_hero_gradient.xml`
-- 颜色：
-  - `#E3F4FF`
-  - `#BBDEFB`
-  - `#FFFFFF`
-
-用途：
-
-- Splash
-- Main
-- Settings
-
-### 首页 idle orb
-
-- 文件：`bg_welcome_cta_idle.xml`
-- 颜色：
-  - `#0A2342`
-  - `#0D47A1`
-  - `#1565C0`
-
-用途：
-
-- 首页主 mic orb
-
-### 首页 active orb
-
-- 文件：`bg_welcome_cta_active.xml`
-- 颜色：
-  - `#085B4A`
-  - `#10997C`
-  - `#30C79D`
-
-说明：
-
-- 当前 active 态改成绿色系，传达“正在服务中”
-- 这个设计是合理的，可以保留
-
-### 蓝色信息卡
-
-- 文件：`bg_info_card_blue.xml`
-- 渐变：
-  - `#EBF3FF`
-  - `#DBEAFE`
-
-### 旧命名“purple”卡
-
-- 文件：`bg_info_card_purple.xml`
-- 实际颜色：
-  - `#E3F2FD`
-  - `#BBDEFB`
-
-说明：
-
-- 名字旧，但视觉仍然是蓝色
-- 设置页目前大量使用它
-
-### overlay 状态 pill
-
-- 文件：`bg_overlay_status_pill.xml`
-- 颜色：`#DD0A2342`
-
-用途：
-
-- step badge
-- listening / thinking pill
-- floating ball step badge
-
-### overlay 输入壳层
-
-- 文件：`bg_overlay_input_shell.xml`
-- 背景：`#FFFCF8`
-- 边框：`#E7DDD2`
-
-说明：
-
-- 它不是纯白，更偏暖白
-- 这使 overlay 在深色底板上更柔和
-
-### chat 气泡
-
-- 用户气泡：`bg_chat_user_bubble.xml`
-  - 主色 `#1565C0`
-- AI 气泡：`bg_chat_ai_card.xml`
-  - 白底 + 左侧蓝条
-
----
-
-## 10.5 高亮颜色
-
-### 当前实现
-
-| 项目 | Hex |
+| 文件 | 作用 |
 |---|---|
-| Highlight Border | `#FF6B00` |
-| Highlight Fill | `#55FF6B00` |
-| Arrow | `#FF6B00` |
-
-### 建议
-
-后续重做时，推荐明确把高亮颜色定义为单独一套 token，例如：
-
-- `highlight_primary = #FF6B00`
-- `highlight_fill = #55FF6B00`
-
-这样品牌蓝和操作提示色不会混淆。
-
----
-
-## 10.6 字体与大小
-
-当前主题和页面大致采用以下层级：
-
-| Style | 当前尺度 |
-|---|---|
-| Display | `34sp` 到 `38sp` |
-| Headline | `26sp` 到 `28sp` |
-| Title | `20sp` 到 `22sp` |
-| Body | `15sp` 到 `17sp` |
-| Guidance | `18sp` |
-| Caption | `12sp` 到 `13sp` |
-
-当前字体：
-
-- 默认 `sans-serif`
-
-建议：
-
-- 对长者产品来说，默认无衬线字体是合理的
-- 不需要为“设计感”强行上花哨字体
-- 更重要的是字号、字重、留白和对比度
+| `android/app/src/main/java/com/smarthelp/app/OverlayService.java` | Android 引导体验主控制器 |
+| `android/app/src/main/java/com/smarthelp/app/ScreenCaptureService.java` | 屏幕捕获 |
+| `android/app/src/main/java/com/smarthelp/app/SmartHelpAccessibilityService.java` | Accessibility snapshot 和用户动作事件 |
+| `android/app/src/main/java/com/smarthelp/app/network/ServerConnection.java` | LiveKit 连接 |
+| `server-python/agent.py` | Python Agent 入口 |
+| `server-python/task_executor.py` | 任务执行和消息编排 |
+| `server-python/navigation_react_agent.py` | 下一步导航判断 |
+| `server-python/vision_grounding_tool.py` | 截图视觉定位 |
+| `server-python/accessibility_fast_path.py` | Accessibility 快速定位 |
+| `server-python/safety_gate.py` | 安全规则 |
+| `server-python/voice_synthesizer.py` | Gemini TTS |
 
 ---
 
-## 10.7 形状语言
+## 12. 与旧版本的主要区别
 
-当前 UI 形状规律非常清楚：
+旧版本：
 
-- 大量使用圆角卡片
-- 主要按钮用 pill
-- 首页主动作用圆形 orb
-- 底部 panel 顶角大圆角
-- 悬浮球也是圆形
+- Android 通过 WebSocket 连接 Node.js server。
+- Node.js server 调 Gemini Live / Gemini service。
+- 任务规划更多依赖 prompt 和一次性计划。
 
-建议重做时统一以下规则：
+当前版本：
 
-| 组件 | 建议圆角 |
-|---|---|
-| 主要卡片 | `16dp` 到 `22dp` |
-| 大底部 panel | 顶角 `28dp` 到 `36dp` |
-| 状态 pill | `16dp` 到 `20dp` |
-| CTA 按钮 | 高度一半作为 radius |
-| orb | 完整圆形 |
+- Android 通过 LiveKit 与 Python Agent 通讯。
+- 音频、截图和 data channel 都走 LiveKit session。
+- Python 端拆成 intent、safety、ReAct、executor、vision、TTS 多阶段模块。
+- Accessibility fast path 能减少视觉模型调用。
+- 任务状态机明确管理任务生命周期。
+- TTS 可以由 server 端 Gemini TTS 通过 LiveKit audio track 播放，失败时 Android local TTS fallback。
 
 ---
 
-## 10.8 页面级设计结构
+## 13. 产品原则
 
-### 推荐保留的页面模板
+SmartHelp+ 后续开发应保持这些原则：
 
-#### 模板 A：Hero + White Sheet
-
-适用页面：
-
-- Splash
-- Main
-- Settings
-
-结构：
-
-1. 顶部/中上部是浅蓝 hero
-2. 底部是白色圆角 content sheet
-
-#### 模板 B：Bottom Guidance Panel
-
-适用页面：
-
-- Overlay 主引导
-
-结构：
-
-1. 深色/渐变底板
-2. guidance 卡片
-3. error 卡片（按需）
-4. quick actions（按需）
-5. mic 输入区
-
-#### 模板 C：Floating Ball + Speech Bubble
-
-适用页面：
-
-- 最小化模式
-
-结构：
-
-1. 小球
-2. 侧边气泡
-3. 点击后展开详情卡
+1. 每次只给一个下一步。
+2. 语音和视觉高亮必须一致。
+3. 不替用户操作，只指导用户自己操作。
+4. 遇到安全风险时宁可中断，也不要继续引导。
+5. 优先使用 Accessibility 数据；不够可靠时才用 Vision。
+6. 用户完成动作后必须验证，不要假设成功。
+7. 面向长者的文案要短、直接、低压力。
 
 ---
 
-## 10.9 当前视觉不一致点
+## 14. 当前状态总结
 
-这一段非常重要，因为你要“重新做”，最好从这里开始清理。
+当前 SmartHelp+ 已经从旧的 Node.js backend 重构为 Python LiveKit Agent 架构。
 
-### 1. 命名还是 purple，但品牌已经是 blue
+Android 端负责捕获、展示、语音交互和用户动作检测；Python 端负责 AI 决策、安全判断、视觉定位和 TTS。整个系统围绕“用户自己操作，系统一步一步指导”的闭环设计。
 
-- `brand_purple*`
-- `bg_info_card_purple`
-- theme 注释中还写着 “Premium Purple”
-
-### 2. overlay 主底板颜色比首页更偏紫/靛蓝
-
-`bg_bottom_sheet_soft_blue.xml` 实际颜色是：
-
-- `#F0091C33`
-- `#EA114A8B`
-- `#D81E6DD0`
-
-它和首页更干净的浅蓝风格不完全统一。
-
-### 3. Splash 相关还有旧紫色资源残留
-
-- `bg_splash_deep.xml`
-
-但当前 `activity_splash.xml` 实际用的是 `bg_hero_gradient.xml`。
-
-### 4. highlight 用橙色，品牌用蓝色
-
-这不是 bug，但必须在设计系统中明确定位。
-
-### 5. 语音输入路径重复
-
-- overlay 内直接语音识别
-- 另外又有 `OverlayVoiceCaptureActivity`
-
-视觉和流程都可能因此出现重复设计。
-
----
-
-## 11. 当前页面清单
-
-| 页面 / 组件 | 主要文件 | 说明 |
-|---|---|---|
-| Splash | `activity_splash.xml`, `SplashActivity.java` | 启动页 |
-| Home | `activity_main.xml`, `MainActivity.java` | 首页 |
-| Settings | `activity_settings.xml`, `SettingsActivity.java` | 设置页 |
-| Onboarding | `dialog_onboarding.xml` | 首次引导 |
-| Overlay Main Panel | `overlay_guidance.xml` | 主引导面板 |
-| Floating Ball | `overlay_ball.xml` | 最小化模式 |
-| Chat Panel | `overlay_chat.xml` | 聊天记录 |
-| Task Complete | `dialog_task_complete.xml` | 完成弹层 |
-| Permission Helper | `MicPermissionActivity.java` | 麦克风权限中转 |
-| Voice Capture Helper | `OverlayVoiceCaptureActivity.java` | 专门的语音捕获 activity |
-| Highlight Overlay | `HighlightOverlayView.java`, `HighlightRenderer.java` | 箭头与高亮圈 |
-
----
-
-## 12. 语言支持现状
-
-这是一个容易误判的点，必须写清楚。
-
-### 当前真实情况
-
-- Android UI：**主要是 English + Chinese**
-- Server safety/navigation/guide：**English + Chinese + Malay**
-- 语音识别 language tag：
-  - `en-US`
-  - `zh-CN`
-  - `ms-MY`
-
-### 结论
-
-这个项目目前是：
-
-- **前端 UI 双语为主**
-- **后端与安全层三语能力更强**
-
-如果你重做时想完整支持 Malay，需要把：
-
-- Android 页面文案
-- Settings UI
-- Onboarding
-- Overlay 提示文案
-
-一起补齐，而不是只改 server。
-
----
-
-## 13. 隐私与安全原则
-
-## 13.1 客户端层
-
-`PrivacySafety.java` 会明确告诉用户：
-
-- 只有在主动求助时才工作
-- 会发送截图、语音、文字到你配置的 server 和 AI
-- 不要在银行 / 支付 / OTP / 密码场景继续使用
-- 遇到敏感页面时会自动暂停
-
-## 13.2 服务端层
-
-`SafetyGate.js` 会：
-
-- 先挡下明显高风险任务
-- 对金钱相关动作做确认
-- 给出诈骗提示
-
-## 13.3 设计原则
-
-这个产品的安全设计不是“尽量帮用户完成所有任务”，而是：
-
-**高风险时宁愿保守、宁愿暂停，也不要自信地误导。**
-
-这条原则建议你在重做时继续保留。
-
----
-
-## 14. 当前代码里哪些东西可以当“重做基准”
-
-### 最值得保留的部分
-
-1. 首页整体结构
-   - `activity_main.xml`
-   - 大圆 orb
-   - hero + white sheet
-
-2. Splash 视觉方向
-   - `activity_splash.xml`
-
-3. 显式状态机
-   - `TaskStateMachine.js`
-
-4. SafetyGate
-   - `SafetyGate.js`
-
-5. 模块化 prompt 结构
-   - `server/src/prompts/`
-
-6. overlay 的功能闭环
-   - 语音
-   - 截图
-   - 高亮
-   - verify
-   - retry/help
-   - complete
-
-### 可以保留思路、但建议重构的部分
-
-1. `OverlayService.java`
-   - 过大，职责太多
-
-2. 语音输入路径
-   - 有重复
-
-3. 旧命名资源
-   - purple 命名、旧注释
-
-4. 设置页
-   - 功能全，但视觉和结构还可以更干净
-
-### 明显属于兼容/旧时代残留的部分
-
-1. `OrchestratorAgent` 作为主架构描述
-2. monolithic prompt backup
-3. 某些旧 purple 注释与旧 drawable
-
----
-
-## 15. 重做时建议的功能优先级
-
-## 15.1 第一优先级：必须先做
-
-- Home
-- Settings
-- Onboarding
-- 权限流
-- Overlay 主面板
-- 截图服务
-- WebSocket 通讯
-- highlight 渲染
-- state machine
-- basic safety
-
-## 15.2 第二优先级：尽快补上
-
-- floating ball mode
-- chat history
-- task complete sheet
-- quick actions
-- reconnect UX
-- recent tasks
-
-## 15.3 第三优先级：可以后做
-
-- 更高级的 prompt evaluation
-- 更完整的 Malay UI
-- analytics dashboard
-- 更强的 metrics 展示
-
----
-
-## 16. 推荐的重做顺序
-
-如果你真的要从头再做，我建议按下面顺序重建，而不是一开始就把所有功能一次堆上去。
-
-### Phase 1：设计系统和壳
-
-- 先定颜色 token
-- 先定 typography
-- 先定 hero + white sheet 布局模板
-- 重做 Splash / Home / Settings 外壳
-
-### Phase 2：权限与基础运行
-
-- 权限流
-- Overlay 权限
-- Screen capture 权限
-- 基础 foreground service
-
-### Phase 3：核心引导闭环
-
-- Overlay panel
-- WebSocket
-- 发送文字 query
-- 截图上传
-- highlight 显示
-- task complete
-
-### Phase 4：智能流程
-
-- state machine
-- ReAct navigation
-- verify / retry / help
-- sensitive protection
-- safety gate
-
-### Phase 5：体验优化
-
-- floating ball
-- chat history
-- quick actions
-- reconnect UX
-- recent tasks
-- sounds / settings polish
-
----
-
-## 17. 我对重做版本的具体建议
-
-这是我结合当前代码后，给你的最实用建议。
-
-### 17.1 产品定位不要变
-
-不要把 SmartHelp+ 做成“聊天机器人”。  
-应该继续做成：
-
-- 老人友好
-- 语音优先
-- 一步一步
-- 当前界面导向
-
-### 17.2 设计系统要统一
-
-建议你以后统一用下面这套规则：
-
-- APP 主品牌：蓝色
-- 高亮提示：橙色
-- 白色卡片做信息层
-- 大圆 orb 做主入口
-- overlay 尽量少按钮
-
-### 17.3 语音入口只能保留一套
-
-重做时一定要统一：
-
-- 是本地 STT 还是 server streaming
-- 不要再留两套相似入口
-
-### 17.4 把旧命名一次清掉
-
-建议统一重命名：
-
-- `brand_purple` -> `brand_blue`
-- `bg_info_card_purple` -> `bg_info_card_primary`
-
-至少新的设计系统不要继续继承错误命名。
-
-### 17.5 继续保留 server 的状态机路线
-
-不要退回“全靠 prompt 自己决定流程”的做法。  
-当前 `TaskStateMachine` 是这个项目最正确的方向之一。
-
----
-
-## 18. 重要参考文件
-
-如果后续要继续研究原项目细节，优先看这些：
-
-### 产品 / 设计类
-
-- `README.md`
-- `design.md`
-- `UI_DESIGN_SPEC.md`
-- `SMARTHELP_OVERVIEW.md`
-
-### 架构 / prompt / 重构类
-
-- `AGENT_REPLANNING_BRIEF.txt`
-- `PROMPT_ANALYSIS.md`
-- `server/docs/migration-status.md`
-- `server/docs/manual-verification-checklist.md`
-
-### Android 关键文件
-
-- `android/app/src/main/java/com/smarthelp/app/MainActivity.java`
-- `android/app/src/main/java/com/smarthelp/app/OverlayService.java`
-- `android/app/src/main/java/com/smarthelp/app/ScreenCaptureService.java`
-- `android/app/src/main/java/com/smarthelp/app/SettingsActivity.java`
-- `android/app/src/main/java/com/smarthelp/app/AppPrefs.java`
-- `android/app/src/main/res/layout/activity_main.xml`
-- `android/app/src/main/res/layout/overlay_guidance.xml`
-- `android/app/src/main/res/values/colors.xml`
-
-### Server 关键文件
-
-- `server/src/index.js`
-- `server/src/core/SessionController.js`
-- `server/src/core/TaskStateMachine.js`
-- `server/src/core/TaskExecutor.js`
-- `server/src/core/SafetyGate.js`
-- `server/src/agents/taskAgent.js`
-- `server/src/agents/geminiLiveAgent.js`
-- `server/src/prompts/`
-
----
-
-## 19. 最终结论
-
-如果你接下来要“重新开始做这个 APP”，你最应该记住的不是某个旧页面细节，而是这 8 件事：
-
-1. SmartHelp+ 的本质是“语音 + 高亮”的一步一步引导，不是聊天机器人。
-2. 当前正确的架构方向是：显式状态机 + ReAct navigation + vision grounding，而不是旧式完整 planner。
-3. Android 端的核心不是首页，而是 `OverlayService` 这条引导闭环。
-4. Server 端真实核心已经是 `SessionController + TaskStateMachine + TaskExecutor`。
-5. 品牌主色已经是蓝色，旧的 purple 命名只是历史残留。
-6. 高亮用橙色是合理的，因为它比品牌蓝更适合作为“行动提示色”。
-7. 安全策略必须保守，尤其是银行、OTP、诈骗场景。
-8. 重做时应该先把设计系统、权限流、overlay 闭环和状态机做好，再做次要功能。
-
-如果只用一句话概括重做方向：
-
-**把 SmartHelp+ 重做成一个更干净、更统一、更可靠的蓝色语音导航助手，同时保留橙色高亮、显式状态机和保守安全策略。**
+这份 `overview.md` 以当前代码为准；如果与 `docs/archive/` 或旧文档冲突，应以当前源码、`README.md` 和 `server-python/` 实现为准。

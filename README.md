@@ -184,7 +184,7 @@ Manual / edge-case test plans and evidence live in [docs/testing/](docs/testing/
 
 ## Documentation
 
-- [overview.md](overview.md) — long-form project description (Chinese; note: parts predate the Python rewrite and still describe the Node.js architecture — current code is authoritative)
+- [overview.md](overview.md) — current long-form project description (Chinese)
 - [docs/architecture/MULTI_AGENT_REACT_PLAN.md](docs/architecture/MULTI_AGENT_REACT_PLAN.md) — multi-agent design rationale
 - [docs/architecture/SMARTHELP_MULTIAGENT_RUNTIME_DIAGRAMS.md](docs/architecture/SMARTHELP_MULTIAGENT_RUNTIME_DIAGRAMS.md) — runtime sequence diagrams
 - [docs/design.md](docs/design.md) — visual design language
