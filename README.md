@@ -206,4 +206,6 @@ These are intercepted by the **Intent Safety Agent** and **Safety Gate** before 
 
 ## License & credits
 
+SmartHelp+ is licensed under the [MIT License](LICENSE).
+
 Final Year Project, Bachelor of Computer Science (Hons), School of Computing and Creative Media, University of Technology Sarawak.
